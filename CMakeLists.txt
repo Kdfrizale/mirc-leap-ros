@@ -10,6 +10,7 @@ project(leap_controller_capstone)
 find_package(catkin REQUIRED COMPONENTS
   std_msgs
   arm_mimic_capstone
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
@@ -153,10 +154,12 @@ include_directories(
 
 link_directories(lib)
 
+##include_directories(SYSTEM ${Boost_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIRS})
 
 add_executable(leap_controller src/Sample.cpp)
 ##target_link_libraries(leap_controller libLeap)
 target_link_libraries(leap_controller -lLeap)
+##target_link_libraries(leap_controller ${Boost_LIBRARIES})
 
 
 

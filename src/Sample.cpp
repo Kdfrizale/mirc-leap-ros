@@ -8,12 +8,16 @@
 
 #include <iostream>
 #include <cstring>
-#include "Leap.h"
-//#include "ros/ros.h"
-//#include <arm_mimic_capstone/HandStampedPose.h>
-//#include <geometry_msgs/PoseStamped.h>
+#include "../include/Leap.h"
+#include "ros/ros.h"
+#include <arm_mimic_capstone/HandStampedPose.h>
+#include <geometry_msgs/PoseStamped.h>
+#include "../include/tf/LinearMath/Matrix3x3.h"
+#include <boost/shared_ptr.hpp>
 
 using namespace Leap;
+
+
 
 class SampleListener : public Listener {
 public:
@@ -28,17 +32,13 @@ public:
     virtual void onServiceConnect(const Controller&);
     virtual void onServiceDisconnect(const Controller&);
 
-private:
-};
+    //boost::shared_ptr <ros::NodeHandle> h;
+    //ros::NodeHandle * h;
+    ros::Publisher publish;
 
-struct handPoint{
-    int xPos;
-    int yPos;
-    int zPos;
-    int yaw;
-    int roll;
-    int pitch;
-} ;
+private:
+
+};
 
 const std::string fingerNames[] = {"Thumb", "Index", "Middle", "Ring", "Pinky"};
 const std::string boneNames[] = {"Metacarpal", "Proximal", "Middle", "Distal"};
@@ -46,10 +46,15 @@ const std::string stateNames[] = {"STATE_INVALID", "STATE_START", "STATE_UPDATE"
 
 void SampleListener::onInit(const Controller& controller) {
     std::cout << "Initialized" << std::endl;
+    //h = boost::make_shared<ros::NodeHandle>("myNodeHandle");
+    //h = ros::NodeHandle("myNodeHandle");
+    //publish = h->advertise<arm_mimic_capstone::HandStampedPose>("/handPoseTopic", 1);
+
 }
 
 void SampleListener::onConnect(const Controller& controller) {
     std::cout << "Connected" << std::endl;
+
 //Added this in to stop the device from recording frames before the user has indicated to start recording. (Hopefully it works. WIP)
 
 //    controller.enableGesture(Gesture::TYPE_CIRCLE);
@@ -79,6 +84,11 @@ void SampleListener::onFrame(const Controller& controller) {
     << std::endl;
 
     HandList hands = frame.hands();
+    //Struct of the 3 points that I need to send via ROS MSG
+    geometry_msgs::PoseStamped sensedPoseTip1;//Thumb Finger tip
+    geometry_msgs::PoseStamped sensedPoseTip2;//Index Finger tip
+    geometry_msgs::PoseStamped sensedposePalm;//wrist
+
     for (HandList::const_iterator hl = hands.begin(); hl != hands.end(); ++hl) {
         // Get the first hand
         const Hand hand = *hl;
@@ -133,6 +143,7 @@ void SampleListener::onFrame(const Controller& controller) {
 //Added code below to only print the Proximal, Metacarpal, and Distal Bone.
                     if(fingerNames[finger.type()] == fingerNames[3]){
                         if(boneNames[boneType] == boneNames[0]){
+                            //Center of Palm (Active)
                             std::cout << std::string(6, ' ') <<  "Center of Palm: ("
                             << ((bone.prevJoint().x + bone.nextJoint().x)/2) << ", "
                             << ((bone.prevJoint().y + bone.nextJoint().y)/2) << ", "
@@ -140,6 +151,7 @@ void SampleListener::onFrame(const Controller& controller) {
                             << " (" << bone.prevJoint().yaw()
                             << ", " << bone.prevJoint().roll()
                             << ", " << bone.prevJoint().pitch() << ")" << std::endl
+                            //Center End of Hand (Inactive)
                             << std::string(6, ' ') << "Center End of Hand: "
                             << bone.nextJoint() << " (" << bone.prevJoint().yaw()
                             << ", " << bone.prevJoint().roll()
@@ -147,32 +159,20 @@ void SampleListener::onFrame(const Controller& controller) {
 
 //Send the data via ROS MSG in a created struct
                             //arm_mimic_capstone::HandStampedPose msg;
-                            handPoint msg;
-                            msg.xPos = ((bone.prevJoint().x + bone.nextJoint().x)/2);
-                            msg.yPos = ((bone.prevJoint().y + bone.nextJoint().y)/2);
-                            msg.zPos = ((bone.prevJoint().z + bone.nextJoint().z)/2);
-                            msg.yaw = bone.prevJoint().yaw();
-                            msg.roll = bone.prevJoint().roll();
-                            msg.pitch = bone.prevJoint().pitch();
 
                             //Copied from Kyle Frizzell's myDummyPub publisher
                             //Values in meters. COVERT FROM MILLIMETERS(Leap) TO METERS
-                            geometry_msgs::PoseStamped sensedPoseTip2;//Index Finger tip
-                            sensedPoseTip2.header.frame_id = "m1n6s200_link_base";
-                            sensedPoseTip2.pose.position.x = 0.247616;
-                            sensedPoseTip2.pose.position.y = 0.180879;
-                            sensedPoseTip2.pose.position.z = 0.653225;
-                            // sensedPoseTip2.pose.orientation = tf::createQuaternionMsgFromYaw(angle);
-
-                            geometry_msgs::PoseStamped sensedposePalm;//wrist
                             sensedposePalm.header.frame_id = "m1n6s200_link_base";
-                            sensedposePalm.pose.position.x = 0.208181;
-                            sensedposePalm.pose.position.y = -0.263388;
-                            sensedposePalm.pose.position.z = 0.477839;
+                            sensedPoseTip2.pose.position.x = ((bone.prevJoint().x + bone.nextJoint().x)/2)/1000;
+                            sensedPoseTip2.pose.position.y = ((bone.prevJoint().y + bone.nextJoint().y)/2)/1000;
+                            sensedPoseTip2.pose.position.z = ((bone.prevJoint().z + bone.nextJoint().z)/2)/1000;
+                            float yaw = (bone.prevJoint().yaw())/1000;
+                            float roll = (bone.prevJoint().roll())/1000;
+                            float pitch = (bone.prevJoint().pitch())/1000;
 
                             //Example of how to do x,y,z,w thing. implement with leap number system.
                             // tf::Matrix3x3 obs_mat;
-                            // obs_mat.setEulerYPR(Yaw,Pitch,Roll);
+                            // obs_mat.setEulerYPR(Yaw,Pitch,Roll);i
                             //
                             // tf::Quaternion q_tf;
                             // obs_mat.getRotation(q_tf);
@@ -180,21 +180,18 @@ void SampleListener::onFrame(const Controller& controller) {
                             // INS_msg.orientation.y = q_tf.getY();
                             // INS_msg.orientation.z = q_tf.getZ();
                             // INS_msg.orientation.w = q_tf.getW();
-                            sensedposePalm.pose.orientation.x = 0.691519;
-                            sensedposePalm.pose.orientation.y = -0.137231;
-                            sensedposePalm.pose.orientation.z = 0.689269;
-                            sensedposePalm.pose.orientation.w = 0.166966;
+                            tf::Matrix3x3 space;
+                            space.setEulerYPR(yaw,pitch,roll);
+                            tf::Quaternion quater;
+                            space.getRotation(quater);
 
-                            geometry_msgs::PoseStamped sensedPoseTip1;//Thumb Finger tip
-                            sensedPoseTip1.header.frame_id = "m1n6s200_link_base";
-                            sensedPoseTip1.pose.position.x = 0.247615;
-                            sensedPoseTip1.pose.position.y = 0.103661;
-                            sensedPoseTip1.pose.position.z = 0.453269;
-
-
-
+                            sensedposePalm.pose.orientation.x = quater.getX();
+                            sensedposePalm.pose.orientation.y = quater.getY();
+                            sensedposePalm.pose.orientation.z = quater.getZ();
+                            sensedposePalm.pose.orientation.w = quater.getW();
 
                         }else if(boneNames[boneType] == boneNames[1]){
+                            //End of Middle Finger (Inactive)
                             std::cout << std::string(6, ' ') <<  "End of Middle Finger: "
                             << bone.nextJoint() << " (" << bone.prevJoint().yaw()
                             << ", " << bone.prevJoint().roll()
@@ -205,11 +202,29 @@ void SampleListener::onFrame(const Controller& controller) {
                         if(boneNames[boneType] == boneNames[3]){
                             std::cout << std::string(6, ' ') << "Finger Tip: "
                             << bone.prevJoint() << std::endl;
+                            if(fingerNames[finger.type()] == fingerNames[0]){//Thumb Finger MSG
+                              geometry_msgs::PoseStamped sensedPoseTip1;
+                              sensedPoseTip1.header.frame_id = "m1n6s200_link_base";
+                              sensedPoseTip1.pose.position.x = (bone.prevJoint().x)/1000;
+                              sensedPoseTip1.pose.position.y = (bone.prevJoint().y)/1000;
+                              sensedPoseTip1.pose.position.z = (bone.prevJoint().z)/1000;
+                            }else{//Index Finger MSG
+                              geometry_msgs::PoseStamped sensedPoseTip2;//Index Finger tip
+                              sensedPoseTip2.header.frame_id = "m1n6s200_link_base";
+                              sensedPoseTip2.pose.position.x = (bone.prevJoint().x)/1000;
+                              sensedPoseTip2.pose.position.y = (bone.prevJoint().y)/1000;
+                              sensedPoseTip2.pose.position.z = (bone.prevJoint().z)/1000;
+                            }
                         }
                     }
                 }
             }
         }
+        arm_mimic_capstone::HandStampedPose thread;
+        thread.poseTip2 = sensedPoseTip2;
+        thread.poseTip1 = sensedPoseTip1;
+        thread.posePalm = sensedposePalm;
+        publish.publish(thread);
     }
 }
 
@@ -240,16 +255,13 @@ void SampleListener::onServiceDisconnect(const Controller& controller) {
 }
 
 int main(int argc, char** argv) {
+    ros::init(argc, argv, "leap_controller_node");
+    //ros::NodeHandle h;
     std::cout << "Touch Trump's Hair to start (Enter).."<< std::endl;
     std::cin.get();
     // Create a sample listener and controller
     SampleListener listener;
     Controller controller;
-
-    //Create a ROS node and Publisher
-    // ros::init(argc, argv, "leap_controller_node");
-    // ros::NodeHandle h;
-    // ros::Publisher publish = h.advertise<arm_mimic_capstone::HandStampedPose>("/HandPose", 1);
 
     // Have the sample listener receive events from the controller
     controller.addListener(listener);
