@@ -9,6 +9,7 @@ project(leap_controller_capstone)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   std_msgs
+  arm_mimic_capstone
 )
 
 ## System dependencies are found with CMake's conventions
