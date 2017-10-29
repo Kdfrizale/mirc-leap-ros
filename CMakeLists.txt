@@ -159,7 +159,7 @@ link_directories(lib)
 add_executable(leap_controller src/Sample.cpp)
 ##target_link_libraries(leap_controller libLeap)
 target_link_libraries(leap_controller -lLeap)
-##target_link_libraries(leap_controller ${Boost_LIBRARIES})
+target_link_libraries(leap_controller ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 
 

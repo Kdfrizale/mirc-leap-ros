@@ -34,15 +34,14 @@ public:
 
     //boost::shared_ptr <ros::NodeHandle> h;
     //ros::NodeHandle * h;
-    ros::Publisher publish;
-
+    // ros::Publisher publish;
 private:
-
 };
 
 const std::string fingerNames[] = {"Thumb", "Index", "Middle", "Ring", "Pinky"};
 const std::string boneNames[] = {"Metacarpal", "Proximal", "Middle", "Distal"};
 const std::string stateNames[] = {"STATE_INVALID", "STATE_START", "STATE_UPDATE", "STATE_END"};
+ros::Publisher publish;
 
 void SampleListener::onInit(const Controller& controller) {
     std::cout << "Initialized" << std::endl;
@@ -87,7 +86,7 @@ void SampleListener::onFrame(const Controller& controller) {
     //Struct of the 3 points that I need to send via ROS MSG
     geometry_msgs::PoseStamped sensedPoseTip1;//Thumb Finger tip
     geometry_msgs::PoseStamped sensedPoseTip2;//Index Finger tip
-    geometry_msgs::PoseStamped sensedposePalm;//wrist
+    geometry_msgs::PoseStamped sensedPosePalm;//wrist
 
     for (HandList::const_iterator hl = hands.begin(); hl != hands.end(); ++hl) {
         // Get the first hand
@@ -162,13 +161,17 @@ void SampleListener::onFrame(const Controller& controller) {
 
                             //Copied from Kyle Frizzell's myDummyPub publisher
                             //Values in meters. COVERT FROM MILLIMETERS(Leap) TO METERS
-                            sensedposePalm.header.frame_id = "m1n6s200_link_base";
-                            sensedPoseTip2.pose.position.x = ((bone.prevJoint().x + bone.nextJoint().x)/2)/1000;
-                            sensedPoseTip2.pose.position.y = ((bone.prevJoint().y + bone.nextJoint().y)/2)/1000;
-                            sensedPoseTip2.pose.position.z = ((bone.prevJoint().z + bone.nextJoint().z)/2)/1000;
-                            float yaw = (bone.prevJoint().yaw())/1000;
-                            float roll = (bone.prevJoint().roll())/1000;
-                            float pitch = (bone.prevJoint().pitch())/1000;
+                            //geometry_msgs::PoseStamped sensedPosePalm;
+                            sensedPosePalm.header.frame_id = "m1n6s200_link_base";
+                            double palmX = (bone.center().z/1000);
+                            double palmY = (bone.center().x/1000);
+                            double palmZ = (bone.center().y/1000);
+                            sensedPosePalm.pose.position.x = palmX;
+                            sensedPosePalm.pose.position.y = palmY;
+                            sensedPosePalm.pose.position.z = palmZ;
+                            double yaw = (bone.prevJoint().yaw());
+                            double roll = (bone.prevJoint().roll());
+                            double pitch = (bone.prevJoint().pitch());
 
                             //Example of how to do x,y,z,w thing. implement with leap number system.
                             // tf::Matrix3x3 obs_mat;
@@ -185,11 +188,11 @@ void SampleListener::onFrame(const Controller& controller) {
                             tf::Quaternion quater;
                             space.getRotation(quater);
 
-                            sensedposePalm.pose.orientation.x = quater.getX();
-                            sensedposePalm.pose.orientation.y = quater.getY();
-                            sensedposePalm.pose.orientation.z = quater.getZ();
-                            sensedposePalm.pose.orientation.w = quater.getW();
-
+                            sensedPosePalm.pose.orientation.x = quater.getX();
+                            sensedPosePalm.pose.orientation.y = quater.getY();
+                            sensedPosePalm.pose.orientation.z = quater.getZ();
+                            sensedPosePalm.pose.orientation.w = quater.getW();
+                            ROS_INFO("DIS IS ROLL [%f]", sensedPosePalm.pose.orientation.w);
                         }else if(boneNames[boneType] == boneNames[1]){
                             //End of Middle Finger (Inactive)
                             std::cout << std::string(6, ' ') <<  "End of Middle Finger: "
@@ -198,32 +201,56 @@ void SampleListener::onFrame(const Controller& controller) {
                             << ", " << bone.prevJoint().pitch() << ")" << std::endl;
                         }
                     }
-                    if(fingerNames[finger.type()] == fingerNames[0] || fingerNames[finger.type()] == fingerNames[1]){
+                    if(fingerNames[finger.type()] == fingerNames[0]){
+                      std::cout << std::string(6, ' ') << "Finger Tip: " << bone.prevJoint() << std::endl;
                         if(boneNames[boneType] == boneNames[3]){
-                            std::cout << std::string(6, ' ') << "Finger Tip: "
-                            << bone.prevJoint() << std::endl;
-                            if(fingerNames[finger.type()] == fingerNames[0]){//Thumb Finger MSG
-                              geometry_msgs::PoseStamped sensedPoseTip1;
+                          //geometry_msgs::PoseStamped sensedPoseTip1;
                               sensedPoseTip1.header.frame_id = "m1n6s200_link_base";
-                              sensedPoseTip1.pose.position.x = (bone.prevJoint().x)/1000;
-                              sensedPoseTip1.pose.position.y = (bone.prevJoint().y)/1000;
-                              sensedPoseTip1.pose.position.z = (bone.prevJoint().z)/1000;
-                            }else{//Index Finger MSG
-                              geometry_msgs::PoseStamped sensedPoseTip2;//Index Finger tip
-                              sensedPoseTip2.header.frame_id = "m1n6s200_link_base";
-                              sensedPoseTip2.pose.position.x = (bone.prevJoint().x)/1000;
-                              sensedPoseTip2.pose.position.y = (bone.prevJoint().y)/1000;
-                              sensedPoseTip2.pose.position.z = (bone.prevJoint().z)/1000;
-                            }
+                              sensedPoseTip1.pose.position.x = (double)((bone.prevJoint().z)/1000);
+                              sensedPoseTip1.pose.position.y = (double)((bone.prevJoint().x)/1000);
+                              sensedPoseTip1.pose.position.z = (double)((bone.prevJoint().y)/1000);
                         }
                     }
+                    if(fingerNames[finger.type()] == fingerNames[1]){
+                      std::cout << std::string(6, ' ') << "Finger Tip: " << bone.prevJoint() << std::endl;
+                        if(boneNames[boneType] == boneNames[3]){
+                            //geometry_msgs::PoseStamped sensedPoseTip2;//Index Finger tip
+                            sensedPoseTip2.header.frame_id = "m1n6s200_link_base";
+                            sensedPoseTip2.pose.position.x = (double)((bone.prevJoint().z)/1000);
+                            sensedPoseTip2.pose.position.y = (double)((bone.prevJoint().x)/1000);
+                            sensedPoseTip2.pose.position.z = (double)((bone.prevJoint().y)/1000);
+                        }
+                    }
+
+                    // if(fingerNames[finger.type()] == fingerNames[0] || fingerNames[finger.type()] == fingerNames[1]){
+                    //     if(boneNames[boneType] == boneNames[3]){
+                    //         std::cout << std::string(6, ' ') << "Finger Tip: " << bone.prevJoint() << std::endl;
+                    //         if(fingerNames[finger.type()] == fingerNames[0]){//Thumb Finger MSG
+                    //           // std::cout << "Trialz" << bone.prevJoint() << std::endl;
+                    //           std::cout << (double)((bone.prevJoint().x)/1000);
+                    //           ROS_INFO("hey bitch [%f]", (double)((bone.prevJoint().x)/1000));
+                    //           geometry_msgs::PoseStamped sensedPoseTip1;
+                    //           sensedPoseTip1.header.frame_id = "m1n6s200_link_base";
+                    //           sensedPoseTip1.pose.position.x = (double)((bone.prevJoint().x)/1000);
+                    //           sensedPoseTip1.pose.position.y = (double)((bone.prevJoint().y)/1000);
+                    //           sensedPoseTip1.pose.position.z = (double)((bone.prevJoint().z)/1000);
+                    //         }else if(fingerNames[finger.type()] == fingerNames[1]){
+                    //           // std::cout << "This is The Index!" << std::endl;//Index Finger MSG
+                    //           geometry_msgs::PoseStamped sensedPoseTip2;//Index Finger tip
+                    //           sensedPoseTip2.header.frame_id = "m1n6s200_link_base";
+                    //           sensedPoseTip2.pose.position.x = (double)((bone.prevJoint().x)/1000);
+                    //           sensedPoseTip2.pose.position.y = (double)((bone.prevJoint().y)/1000);
+                    //           sensedPoseTip2.pose.position.z = (double)((bone.prevJoint().z)/1000);
+                    //         }
+                        // }
+                    // }
                 }
             }
         }
         arm_mimic_capstone::HandStampedPose thread;
         thread.poseTip2 = sensedPoseTip2;
         thread.poseTip1 = sensedPoseTip1;
-        thread.posePalm = sensedposePalm;
+        thread.posePalm = sensedPosePalm;
         publish.publish(thread);
     }
 }
@@ -256,6 +283,8 @@ void SampleListener::onServiceDisconnect(const Controller& controller) {
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "leap_controller_node");
+    ros::NodeHandle h;
+    publish = h.advertise<arm_mimic_capstone::HandStampedPose>("/handPoseTopic", 1);
     //ros::NodeHandle h;
     std::cout << "Touch Trump's Hair to start (Enter).."<< std::endl;
     std::cin.get();
