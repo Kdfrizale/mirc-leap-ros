@@ -62,7 +62,7 @@ void SampleListener::onFrame(const Controller& controller) {
 
     //All hands recorded on the frame
     HandList hands = frame.hands();
-    
+
     //Struct of the 3 points that I need to send via ROS MSG
     geometry_msgs::PoseStamped sensedPoseTip1;//Thumb Finger tip
     geometry_msgs::PoseStamped sensedPoseTip2;//Index Finger tip
@@ -72,7 +72,7 @@ void SampleListener::onFrame(const Controller& controller) {
     for (HandList::const_iterator hl = hands.begin(); hl != hands.end(); ++hl) {
         // Get the first hand
         const Hand hand = *hl;
-        
+
         //FIRST HAND ONLY
         if(hand == frame.hands() [0]){
             std::string handType = hand.isLeft() ? "Left hand" : "Right hand";
@@ -116,24 +116,24 @@ void SampleListener::onFrame(const Controller& controller) {
                         if(boneNames[boneType] == boneNames[0]){
                             //Center of Palm
                             std::cout << std::string(6, ' ') <<  "Center of Palm " << bone.center() << std::endl;
-                            
+
                             //Copied from Kyle Frizzell's myDummyPub publisher
                             //Values in meters (mm/1000).
                             sensedPosePalm.header.frame_id = "m1n6s200_link_base";
                             sensedPosePalm.pose.position.x = -(bone.center().x/1000);
                             sensedPosePalm.pose.position.y = (bone.center().z/1000);
                             sensedPosePalm.pose.position.z = (bone.center().y/1000);
-                            
+
                             //Conversion Trial1: For ARM settings
                             // double yaw = (bone.prevJoint().roll());
                             // double roll = (bone.prevJoint().pitch());
                             // double pitch = (bone.prevJoint().yaw());
-                            
+
                             //Finger Based Values
                             // double yaw = (bone.prevJoint().yaw());
                             // double roll = (bone.prevJoint().roll());
                             // double pitch = (bone.prevJoint().pitch());
-                            
+
                             //Hand based values
                             double yaw = direction.yaw();
                             double roll = normal.roll();
