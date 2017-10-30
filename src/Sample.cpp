@@ -60,19 +60,24 @@ void SampleListener::onFrame(const Controller& controller) {
     const Frame frame = controller.frame();
     std::cout << "Frame id: " << frame.id() << std::endl;
 
+    //All hands recorded on the frame
     HandList hands = frame.hands();
+    
     //Struct of the 3 points that I need to send via ROS MSG
     geometry_msgs::PoseStamped sensedPoseTip1;//Thumb Finger tip
     geometry_msgs::PoseStamped sensedPoseTip2;//Index Finger tip
     geometry_msgs::PoseStamped sensedPosePalm;//wrist
 
+//************************************************ Trial: remove for loop and see if it still runs as normal *************************************************************************
     for (HandList::const_iterator hl = hands.begin(); hl != hands.end(); ++hl) {
         // Get the first hand
         const Hand hand = *hl;
+        
         //FIRST HAND ONLY
         if(hand == frame.hands() [0]){
             std::string handType = hand.isLeft() ? "Left hand" : "Right hand";
             std::cout << std::string(2, ' ') << handType << ", id: " << hand.id()
+//maybe delete info below/ see the number below and maybe use this value instead of Center of Palm
             << ", palm position: " << hand.palmPosition() << std::endl;
 
             // Get the hand's normal vector and direction
@@ -84,12 +89,6 @@ void SampleListener::onFrame(const Controller& controller) {
             << "roll: " << normal.roll() << " Rads, "
             << "yaw: " << direction.yaw() << " Rads" << std::endl;
 
-            // Get the Arm bone
-            Arm arm = hand.arm();
-            std::cout << std::string(2, ' ') <<  "Arm direction: " << arm.direction()
-            << " wrist position: " << arm.wristPosition()
-            << " elbow position: " << arm.elbowPosition() << std::endl;
-
             // Get fingers
             const FingerList fingers = hand.fingers();
             for (FingerList::const_iterator fl = fingers.begin(); fl != fingers.end(); ++fl) {
@@ -99,52 +98,42 @@ void SampleListener::onFrame(const Controller& controller) {
                 if(fingerNames[finger.type()] == fingerNames[0] || fingerNames[finger.type()] == fingerNames[1]
                    || fingerNames[finger.type()] == fingerNames[2]){
                     std::cout << std::string(4, ' ') <<  fingerNames[finger.type()]
+//maybe delete info below.
                     << " finger, id: " << finger.id()
                     << ", length: " << finger.length()
                     << "mm, width: " << finger.width() << std::endl;
                 }
 
                 //The Start and End points of each bone is the frame coordinates of where the bones begin and end
-                //Middle Finger End = Middle Proximal End (x,y,z)(Yaw, Roll, Pitch)
-                //Center of Palm = (Middle Metacarpal Start + End)/2 (x,y,z) (Yaw, Roll, Pitch)
-                //Center End of Hand/Wrist = Middle Metacarpal End (x,y,z) (Yaw, Roll, Pitch)
-
                 // Get finger bones
                 for (int b = 0; b < 4; ++b) {
                     Bone::Type boneType = static_cast<Bone::Type>(b);
                     Bone bone = finger.bone(boneType);
 
-                    //Added code below to only print the Proximal, Metacarpal, and Distal Bone.
+                    //Center of Palm = (Middle Metacarpal Start + End)/2 (x,y,z) (Yaw, Roll, Pitch)
+//maybe combine both if statements to one and see if it works normally
                     if(fingerNames[finger.type()] == fingerNames[3]){
                         if(boneNames[boneType] == boneNames[0]){
-                            //Center of Palm (Active)
-                            std::cout << std::string(6, ' ') <<  "Center of Palm: ("
-                            << ((bone.prevJoint().x + bone.nextJoint().x)/2) << ", "
-                            << ((bone.prevJoint().y + bone.nextJoint().y)/2) << ", "
-                            << ((bone.prevJoint().z + bone.nextJoint().z)/2) << ")"
-                            << " (Roll: " << bone.prevJoint().roll()
-                            << ", Pitch: " << bone.prevJoint().pitch()
-                            << ", Yaw: " << bone.prevJoint().yaw() << ")" << std::endl;
-                            //Center End of Hand (Inactive)
-                            //                            << std::string(6, ' ') << "Center End of Hand: "
-                            //                            << bone.nextJoint() << " (" << bone.prevJoint().yaw()
-                            //                            << ", " << bone.prevJoint().roll()
-                            //                            << ", " << bone.prevJoint().pitch() << ")" << std::endl;
-
+                            //Center of Palm
+                            std::cout << std::string(6, ' ') <<  "Center of Palm " << bone.center() << std::endl;
+                            
                             //Copied from Kyle Frizzell's myDummyPub publisher
                             //Values in meters (mm/1000).
                             sensedPosePalm.header.frame_id = "m1n6s200_link_base";
                             sensedPosePalm.pose.position.x = -(bone.center().x/1000);
                             sensedPosePalm.pose.position.y = (bone.center().z/1000);
                             sensedPosePalm.pose.position.z = (bone.center().y/1000);
+                            
                             //Conversion Trial1: For ARM settings
                             // double yaw = (bone.prevJoint().roll());
                             // double roll = (bone.prevJoint().pitch());
                             // double pitch = (bone.prevJoint().yaw());
-                            //Normal/Standard waay (Finger Based)
+                            
+                            //Finger Based Values
                             // double yaw = (bone.prevJoint().yaw());
                             // double roll = (bone.prevJoint().roll());
                             // double pitch = (bone.prevJoint().pitch());
+                            
                             //Hand based values
                             double yaw = direction.yaw();
                             double roll = normal.roll();
@@ -158,25 +147,19 @@ void SampleListener::onFrame(const Controller& controller) {
                             tf::Quaternion quater;
                             space.getRotation(quater);
 
+                            //Puts converted data into the ROS struct
                             sensedPosePalm.pose.orientation.x = quater.getX();
                             sensedPosePalm.pose.orientation.y = quater.getY();
                             sensedPosePalm.pose.orientation.z = quater.getZ();
                             sensedPosePalm.pose.orientation.w = quater.getW();
                         }
-                        //                        else if(boneNames[boneType] == boneNames[1]){
-                        //                            //End of Middle Finger (Inactive)
-                        //                            std::cout << std::string(6, ' ') <<  "End of Middle Finger: "
-                        //                            << bone.nextJoint() << " (" << bone.prevJoint().yaw()
-                        //                            << ", " << bone.prevJoint().roll()
-                        //                            << ", " << bone.prevJoint().pitch() << ")" << std::endl;
-                        //                        }
                     }
 
                     //Finger Tip Thumb = Thumb Distal Start (x,y,z)
+//maybe combine both if statements to one and see if it works normally
                     if(fingerNames[finger.type()] == fingerNames[0]){
                         if(boneNames[boneType] == boneNames[3]){
                             std::cout << std::string(6, ' ') << "Finger Tip: " << bone.prevJoint() << std::endl;
-                            //geometry_msgs::PoseStamped sensedPoseTip1;
                             sensedPoseTip1.header.frame_id = "m1n6s200_link_base";
                             sensedPoseTip1.pose.position.x = -(double)((bone.prevJoint().x)/1000);
                             sensedPoseTip1.pose.position.y = (double)((bone.prevJoint().z)/1000);
@@ -185,10 +168,10 @@ void SampleListener::onFrame(const Controller& controller) {
                     }
 
                     //Finger Tip Index = Index Distal Start (x,y,z)
+//maybe combine both if statements to one and see if it works normally
                     if(fingerNames[finger.type()] == fingerNames[1]){
                         if(boneNames[boneType] == boneNames[3]){
                             std::cout << std::string(6, ' ') << "Finger Tip: " << bone.prevJoint() << std::endl;
-                            //geometry_msgs::PoseStamped sensedPoseTip2;//Index Finger tip
                             sensedPoseTip2.header.frame_id = "m1n6s200_link_base";
                             sensedPoseTip2.pose.position.x = -(double)((bone.prevJoint().x)/1000);
                             sensedPoseTip2.pose.position.y = (double)((bone.prevJoint().z)/1000);
