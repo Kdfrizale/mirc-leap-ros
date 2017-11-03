@@ -13,6 +13,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include "../include/tf/LinearMath/Matrix3x3.h"
 #include <boost/shared_ptr.hpp>
+#include "../include/tf/transform_datatypes.h"
 
 using namespace Leap;
 
@@ -111,9 +112,7 @@ void SampleListener::onFrame(const Controller& controller) {
                     Bone bone = finger.bone(boneType);
 
                     //Center of Palm = (Middle Metacarpal Start + End)/2 (x,y,z) (Yaw, Roll, Pitch)
-//maybe combine both if statements to one and see if it works normally
-                    if(fingerNames[finger.type()] == fingerNames[3]){
-                        if(boneNames[boneType] == boneNames[0]){
+                    if(fingerNames[finger.type()] == fingerNames[3] && boneNames[boneType] == boneNames[0]){
                             //Center of Palm
                             std::cout << std::string(6, ' ') <<  "Center of Palm " << bone.center() << std::endl;
 
@@ -139,6 +138,16 @@ void SampleListener::onFrame(const Controller& controller) {
                             double roll = normal.roll();
                             double pitch = direction.pitch();
 
+                            //Hand based values Conversion Trials 1
+                            // double pitch = direction.yaw();
+                            // double yaw = normal.roll();
+                            // double roll = direction.pitch();
+
+                            //Hand based values Conversion Trials 2
+                            // double roll = direction.yaw();
+                            // double yaw = normal.roll();
+                            // double pitch = direction.pitch();
+
                             //Vector Converter for ROS
                             //Changes yaw, pitch, roll into
                             //(yaw pitch roll angle);(x y z w)
@@ -147,36 +156,40 @@ void SampleListener::onFrame(const Controller& controller) {
                             tf::Quaternion quater;
                             space.getRotation(quater);
 
+                            tf::Quaternion quater2 = tf::createQuaternionFromRPY(roll, pitch, yaw);
+
+
+
                             //Puts converted data into the ROS struct
+                            std::cout << "Quater Values: " << std::endl
+                            << "X: " << quater.getX() << "  Y: " << quater.getY()
+                            << "  Z: " << quater.getZ() << "  W: " << quater.getW() << std::endl;
+
+                            std::cout << "Second Quater Values: " << std::endl
+                            << "X: " << quater2.getX() << "  Y: " << quater2.getY()
+                            << "  Z: " << quater2.getZ() << "  W: " << quater2.getW() << std::endl;
                             sensedPosePalm.pose.orientation.x = quater.getX();
                             sensedPosePalm.pose.orientation.y = quater.getY();
                             sensedPosePalm.pose.orientation.z = quater.getZ();
                             sensedPosePalm.pose.orientation.w = quater.getW();
-                        }
                     }
 
                     //Finger Tip Thumb = Thumb Distal Start (x,y,z)
-//maybe combine both if statements to one and see if it works normally
-                    if(fingerNames[finger.type()] == fingerNames[0]){
-                        if(boneNames[boneType] == boneNames[3]){
+                    if(fingerNames[finger.type()] == fingerNames[0] && boneNames[boneType] == boneNames[3]){
                             std::cout << std::string(6, ' ') << "Finger Tip: " << bone.prevJoint() << std::endl;
                             sensedPoseTip1.header.frame_id = "m1n6s200_link_base";
                             sensedPoseTip1.pose.position.x = -(double)((bone.prevJoint().x)/1000);
                             sensedPoseTip1.pose.position.y = (double)((bone.prevJoint().z)/1000);
                             sensedPoseTip1.pose.position.z = (double)((bone.prevJoint().y)/1000);
-                        }
                     }
 
                     //Finger Tip Index = Index Distal Start (x,y,z)
-//maybe combine both if statements to one and see if it works normally
-                    if(fingerNames[finger.type()] == fingerNames[1]){
-                        if(boneNames[boneType] == boneNames[3]){
+                    if(fingerNames[finger.type()] == fingerNames[1] && boneNames[boneType] == boneNames[3]){
                             std::cout << std::string(6, ' ') << "Finger Tip: " << bone.prevJoint() << std::endl;
                             sensedPoseTip2.header.frame_id = "m1n6s200_link_base";
                             sensedPoseTip2.pose.position.x = -(double)((bone.prevJoint().x)/1000);
                             sensedPoseTip2.pose.position.y = (double)((bone.prevJoint().z)/1000);
                             sensedPoseTip2.pose.position.z = (double)((bone.prevJoint().y)/1000);
-                        }
                     }
                 }
             }
