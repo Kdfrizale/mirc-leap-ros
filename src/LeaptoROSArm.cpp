@@ -38,6 +38,7 @@ const std::string fingerNames[] = {"Thumb", "Index", "Middle", "Ring", "Pinky"};
 const std::string boneNames[] = {"Metacarpal", "Proximal", "Middle", "Distal"};
 const std::string stateNames[] = {"STATE_INVALID", "STATE_START", "STATE_UPDATE", "STATE_END"};
 ros::Publisher publish;
+const long outOfBoundsState = 123456789.0;
 
 void SampleListener::onInit(const Controller& controller) {
     std::cout << "Initialized" << std::endl;
@@ -134,7 +135,7 @@ void SampleListener::onFrame(const Controller& controller) {
                             // double pitch = (bone.prevJoint().pitch());
 
                             //Hand based values
-                            double yaw = direction.yaw();
+                            double yaw = -direction.yaw();
                             double roll = normal.roll();
                             double pitch = direction.pitch();
 
@@ -194,13 +195,31 @@ void SampleListener::onFrame(const Controller& controller) {
                 }
             }
         }
-        //Puts everything in one nice package and sends the data
-        arm_mimic_capstone::HandStampedPose thread;
-        thread.poseTip2 = sensedPoseTip2;
-        thread.poseTip1 = sensedPoseTip1;
-        thread.posePalm = sensedPosePalm;
-        publish.publish(thread);
     }
+    if(hands.isEmpty()){
+      // std::cout << "Error State: No Hands" << std::endl;
+      sensedPoseTip1.header.frame_id = "m1n6s200_link_base";
+      sensedPoseTip1.pose.position.x = outOfBoundsState;
+      sensedPoseTip1.pose.position.y = outOfBoundsState;
+      sensedPoseTip1.pose.position.z = outOfBoundsState;
+
+      sensedPoseTip2.header.frame_id = "m1n6s200_link_base";
+      sensedPoseTip2.pose.position.x = outOfBoundsState;
+      sensedPoseTip2.pose.position.y = outOfBoundsState;
+      sensedPoseTip2.pose.position.z = outOfBoundsState;
+
+      sensedPosePalm.header.frame_id = "m1n6s200_link_base";
+      sensedPosePalm.pose.position.x = outOfBoundsState;
+      sensedPosePalm.pose.position.y = outOfBoundsState;
+      sensedPosePalm.pose.position.z = outOfBoundsState;
+
+    }
+    //Puts everything in one nice package and sends the data
+    arm_mimic_capstone::HandStampedPose thread;
+    thread.poseTip2 = sensedPoseTip2;
+    thread.poseTip1 = sensedPoseTip1;
+    thread.posePalm = sensedPosePalm;
+    publish.publish(thread);
 }
 
 void SampleListener::onFocusGained(const Controller& controller) {

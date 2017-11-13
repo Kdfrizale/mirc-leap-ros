@@ -156,7 +156,7 @@ link_directories(lib)
 
 ##include_directories(SYSTEM ${Boost_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIRS})
 
-add_executable(leap_controller src/Sample.cpp)
+add_executable(leap_controller src/LeaptoROSArm.cpp)
 ##target_link_libraries(leap_controller libLeap)
 target_link_libraries(leap_controller -lLeap)
 target_link_libraries(leap_controller ${catkin_LIBRARIES} ${Boost_LIBRARIES})
