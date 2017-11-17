@@ -9,15 +9,11 @@
 #include <cstring>
 #include "../include/Leap.h"
 #include "ros/ros.h"
-#include <arm_mimic_capstone/HandStampedPose.h>
+// #include <arm_mimic_capstone/HandStampedPose.h>
 #include <geometry_msgs/PoseStamped.h>
-#include "../include/tf/LinearMath/Matrix3x3.h"
 #include <boost/shared_ptr.hpp>
-#include "../include/tf/transform_datatypes.h"
 
 using namespace Leap;
-
-
 
 class SampleListener : public Listener {
 public:
@@ -74,7 +70,7 @@ void SampleListener::onFrame(const Controller& controller) {
         //FIRST HAND ONLY
         if(hand == frame.hands() [0]){
             std::cout << "palm position (x,z): (" << hand.palmPosition().x << ", " << hand.palmPosition().z << ")" << std::endl;
-            
+
                             //Values in meters (mm/1000).
 //                            sensedPosePalm.header.frame_id = "m1n6s200_link_base";
 //                            sensedPosePalm.pose.position.x = -(hand.palmPosition().x/1000);

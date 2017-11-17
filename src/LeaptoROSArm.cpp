@@ -17,8 +17,6 @@
 
 using namespace Leap;
 
-
-
 class SampleListener : public Listener {
 public:
     virtual void onInit(const Controller&);
@@ -136,9 +134,11 @@ void SampleListener::onFrame(const Controller& controller) {
 
                             //Hand based values
                             double yaw = -direction.yaw();
+                            // double roll = normal.roll();
                             double roll = normal.roll();
                             double pitch = direction.pitch();
-
+                            std::cout << "Normal   (R,P,Y): (" << normal.roll() << ", " << normal.pitch() << ", " << normal.yaw() << ")" << std::endl;
+                            std::cout << "Direction (R,P,Y): (" << direction.roll() << ", " << direction.pitch() << ", " << direction.yaw() << ")" << std::endl;
                             //Hand based values Conversion Trials 1
                             // double pitch = direction.yaw();
                             // double yaw = normal.roll();
