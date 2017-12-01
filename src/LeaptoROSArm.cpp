@@ -186,13 +186,12 @@ void SampleListener::onFrame(const Controller& controller) {
 
                     //Finger Tip Index = Index Distal Start (x,y,z)
                     //Changed to Index proximal (start + end)/2 (x,y,z)
-                    if(fingerNames[finger.type()] == fingerNames[1] && (boneNames[boneType] == boneNames[1] || boneNames[boneType] == boneNames[2])){
-                            std::cout << std::string(6, ' ') << "Index \"Finger Tip\": (" << (bone.prevJoint().x + bone.nextJoint().x)/2
-                            << ", " << (bone.prevJoint().y + bone.nextJoint().y)/2 << ", " << (bone.prevJoint().z + bone.nextJoint().z)/2 << ")" << std::endl;
+                    if(fingerNames[finger.type()] == fingerNames[1] && boneNames[boneType] == boneNames[1]){
+                            std::cout << std::string(6, ' ') << "Index \"Finger Tip\": " << bone.prevJoint() << std::endl;
                             sensedPoseTip2.header.frame_id = "m1n6s200_link_base";
-                            sensedPoseTip2.pose.position.x = -(double)((bone.prevJoint().x + bone.nextJoint().x)/2000);
-                            sensedPoseTip2.pose.position.y = (double)((bone.prevJoint().z  + bone.nextJoint().y)/2000);
-                            sensedPoseTip2.pose.position.z = (double)((bone.prevJoint().y + bone.nextJoint().z)/2000);
+                            sensedPoseTip2.pose.position.x = -(double)((bone.prevJoint().x)/1000);
+                            sensedPoseTip2.pose.position.y = (double)((bone.prevJoint().z)/1000);
+                            sensedPoseTip2.pose.position.z = (double)((bone.prevJoint().y)/1000);
                             // sensedPoseTip2.pose.position.x = -(double)((bone.prevJoint().x)/1000);
                             // sensedPoseTip2.pose.position.y = (double)((bone.prevJoint().z)/1000);
                             // sensedPoseTip2.pose.position.z = (double)((bone.prevJoint().y)/1000);
