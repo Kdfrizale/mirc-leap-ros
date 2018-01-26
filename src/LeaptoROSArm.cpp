@@ -9,7 +9,7 @@
 #include <cstring>
 #include "../include/Leap.h"
 #include "ros/ros.h"
-#include <arm_mimic_capstone/HandStampedPose.h>
+#include <leap_controller_capstone/HandPoseStamped.h>
 #include <geometry_msgs/PoseStamped.h>
 #include "../include/tf/LinearMath/Matrix3x3.h"
 #include <boost/shared_ptr.hpp>
@@ -219,9 +219,9 @@ void SampleListener::onFrame(const Controller& controller) {
 
     }
     //Puts everything in one nice package and sends the data
-    arm_mimic_capstone::HandStampedPose thread;
-    thread.poseTip2 = sensedPoseTip2;
-    thread.poseTip1 = sensedPoseTip1;
+    leap_controller_capstone::HandPoseStamped thread;
+    //thread.poseTip2 = sensedPoseTip2;
+    //thread.poseTip1 = sensedPoseTip1;
     thread.posePalm = sensedPosePalm;
     publish.publish(thread);
 }
@@ -257,7 +257,7 @@ int main(int argc, char** argv) {
     //Defines where the data is to be sent to.
     ros::init(argc, argv, "leap_controller_node");
     ros::NodeHandle h;
-    publish = h.advertise<arm_mimic_capstone::HandStampedPose>("/handPoseTopic", 1);
+    publish = h.advertise<leap_controller_capstone::HandPoseStamped>("/handPoseTopic", 1);
 
     //Heh. Funny.
     //Prevents anything from happening until the user is ready.
