@@ -1,0 +1,8 @@
+<launch>
+
+  <node name="leap_sensor" pkg="leap_controller_capstone" type="leap_controller">
+    <param name="output_pose_topic" value="/handPoseTopic"/>
+  </node>
+
+
+</launch>

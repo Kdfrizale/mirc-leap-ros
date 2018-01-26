@@ -256,8 +256,10 @@ int main(int argc, char** argv) {
 
     //Defines where the data is to be sent to.
     ros::init(argc, argv, "leap_controller_node");
-    ros::NodeHandle h;
-    publish = h.advertise<leap_controller_capstone::HandPoseStamped>("/handPoseTopic", 1);
+    ros::NodeHandle node_handle("~");
+    std::string output_pose_topic_name;
+    node_handle.getParam("output_pose_topic",output_pose_topic_name);
+    publish = node_handle.advertise<leap_controller_capstone::HandPoseStamped>(output_pose_topic_name, 1);
 
     //Heh. Funny.
     //Prevents anything from happening until the user is ready.
