@@ -1,7 +1,8 @@
 <launch>
   <param name="leap_output_pose_topic" value="/leap_hand_pose"/>
 
-  <node name="leap_controller_node" pkg="leap_controller_capstone" type="leap_controller">
+  <node name="leap_controller_node" pkg="leap_controller_capstone" type="leap_controller" output="screen">
+    <param name="hand_to_sense" value="first" />
   </node>
 
 
