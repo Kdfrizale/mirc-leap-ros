@@ -148,29 +148,22 @@ void LeapController::onServiceDisconnect(const Leap::Controller& controller) {
 }
 
 int main(int argc, char** argv) {
-    //Defines where the data is to be sent to.
     ros::init(argc, argv, "leap_controller_node");
     ros::NodeHandle node_handle;
 
-    //Heh. Funny.
-    //Prevents anything from happening until the user is ready.
-    std::cout << "Touch Trump's Hair to start (Enter).."<< std::endl;
-    std::cin.get();
-
-    // Create a sample listener and controller
     LeapController listener = LeapController(node_handle);
     Leap::Controller controller;
-
     // Have the sample listener receive events from the controller
     controller.addListener(listener);
-
     //Essentially, it runs everything as a background multi-thread.
     if (argc > 1 && strcmp(argv[1], "--bg") == 0)
         controller.setPolicy(Leap::Controller::POLICY_BACKGROUND_FRAMES);
 
-    // Keep this process running until Enter is pressed
-    std::cout << "Press Enter to quit..." << std::endl;
-    std::cin.get();
+
+    bool should_operate = true;
+    while(ros::ok()  && should_operate){
+      ros::spinOnce();
+    }
 
     // Remove the sample listener when done
     controller.removeListener(listener);
