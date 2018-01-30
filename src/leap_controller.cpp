@@ -7,14 +7,14 @@
 
 #include <iostream>
 #include <cstring>
-#include "../include/Leap.h"
+#include "../ignore/Leap.h"
 #include "ros/ros.h"
 #include <leap_controller_capstone/HandPoseStamped.h>
 #include <leap_controller_capstone/FingerPoseStamped.h>
 #include <geometry_msgs/PoseStamped.h>
-#include "../include/tf/LinearMath/Matrix3x3.h"
+#include "../ignore/tf/LinearMath/Matrix3x3.h"
 #include <boost/shared_ptr.hpp>
-#include "../include/tf/transform_datatypes.h"
+#include "../ignore/tf/transform_datatypes.h"
 
 class LeapController : public Leap::Listener {
 public:
@@ -56,6 +56,15 @@ const std::string fingerNames[] = {"Thumb", "Index", "Middle", "Ring", "Pinky"};
 const std::string boneNames[] = {"Metacarpal", "Proximal", "Middle", "Distal"};
 const std::string stateNames[] = {"STATE_INVALID", "STATE_START", "STATE_UPDATE", "STATE_END"};
 
+enum HandToSenseEnum {FIRST_HAND, LEFT_HAND, RIGHT_HAND, BOTH_HANDS};
+
+HandToSenseEnum hashToEnum(std::string const& aString){
+  if (aString == "first") return FIRST_HAND;
+  else if (aString == "left") return LEFT_HAND;
+  else if (aString == "right") return RIGHT_HAND;
+  else if (aString == "both") return BOTH_HANDS;
+}
+
 LeapController::LeapController(ros::NodeHandle &nh):nh_(nh){
   std::string output_pose_topic_name;
   nh_.getParam("leap_output_pose_topic",output_pose_topic_name);
@@ -78,18 +87,38 @@ LeapController::LeapController(ros::NodeHandle &nh):nh_(nh){
 void LeapController::onFrame(const Leap::Controller& controller){
   current_frame_ = controller.frame();
   processFrame();
-
 }
 
 void LeapController::processFrame(){
-  enum HandToSense {first, second, left, right, both};
-  //TODO determine which hand should be processed based on ROS param
-  //Then process that hand
   Leap::HandList hands = current_frame_.hands();
-  for (Leap::HandList::const_iterator hl = hands.begin(); hl != hands.end(); ++hl) {
-      const Leap::Hand hand = *hl;
-      processHand(hand);
-    }
+  if (!hands.isEmpty()){
+    switch(hashToEnum(hand_to_sense_)){
+      case FIRST_HAND:
+        processHand(hands[0]);
+
+      case LEFT_HAND:
+        for (Leap::HandList::const_iterator hl = hands.begin(); hl != hands.end(); ++hl) {
+            const Leap::Hand hand = *hl;
+            if(hand.isLeft()){
+              processHand(hand);
+            }
+          }
+
+      case RIGHT_HAND:
+      for (Leap::HandList::const_iterator hl = hands.begin(); hl != hands.end(); ++hl) {
+          const Leap::Hand hand = *hl;
+          if(hand.isRight()){
+            processHand(hand);
+          }
+        }
+
+      case BOTH_HANDS:
+        for (Leap::HandList::const_iterator hl = hands.begin(); hl != hands.end(); ++hl) {
+            const Leap::Hand hand = *hl;
+            processHand(hand);
+          }
+    }//end switch
+  }//end if
 }
 
 void LeapController::processHand(const Leap::Hand& aHand){
@@ -98,6 +127,8 @@ void LeapController::processHand(const Leap::Hand& aHand){
   //TODO add logic code to get important information on the palm here
   //Also set HandPoseStamped.name = "left" or "right"
 
+
+  //TODO add logic to select which fingers to track
   const Leap::FingerList fingers = aHand.fingers();
   for (Leap::FingerList::const_iterator fl = fingers.begin(); fl != fingers.end(); ++fl) {
       const Leap::Finger finger = *fl;
