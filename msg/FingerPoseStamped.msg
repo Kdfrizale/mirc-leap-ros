@@ -1,0 +1,6 @@
+Header header
+string name
+geometry_msgs/PoseStamped poseDistalPhalange
+geometry_msgs/PoseStamped poseIntermediatePhalange
+geometry_msgs/PoseStamped poseProximalPhalange
+geometry_msgs/PoseStamped poseMetacarpal

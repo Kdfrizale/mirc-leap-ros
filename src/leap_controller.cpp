@@ -10,6 +10,7 @@
 #include "../include/Leap.h"
 #include "ros/ros.h"
 #include <leap_controller_capstone/HandPoseStamped.h>
+#include <leap_controller_capstone/FingerPoseStamped.h>
 #include <geometry_msgs/PoseStamped.h>
 #include "../include/tf/LinearMath/Matrix3x3.h"
 #include <boost/shared_ptr.hpp>
@@ -32,10 +33,10 @@ private:
     ros::NodeHandle nh_;
     ros::Publisher hand_pose_publisher_;
     std::string hand_to_sense_;
+    std::vector<std::string> fingers_to_track_;
 
     geometry_msgs::PoseStamped sensedPosePalm_;//Center of the Palm Pose
-    std::vector<geometry_msgs::PoseStamped> sensedPoseFingerTips_;//Finger Tip Poses
-    std::vector<geometry_msgs::PoseStamped> sensedPoseMisc_;//Anything Extra
+    std::vector<leap_controller_capstone::FingerPoseStamped> sensedPoseFingers_;//Finger Poses
 
     Leap::Frame current_frame_;
 
@@ -58,6 +59,9 @@ LeapController::LeapController(ros::NodeHandle &nh):nh_(nh){
   hand_pose_publisher_ = nh_.advertise<leap_controller_capstone::HandPoseStamped>(output_pose_topic_name,10);
 
   nh_.param<std::string>("hand_to_sense",hand_to_sense_, "first");
+  //TODO add param logic to get an array of bone names to track
+  //for now hard code
+  fingers_to_track_.push_back("index");
 }
 
 void LeapController::onFrame(const Leap::Controller& controller){
@@ -75,7 +79,6 @@ void LeapController::processFrame(){
       const Leap::Hand hand = *hl;
       processHand(hand);
     }
-    publishHandPose();
 }
 
 void LeapController::processHand(const Leap::Hand& aHand){
@@ -88,18 +91,52 @@ void LeapController::processHand(const Leap::Hand& aHand){
       const Leap::Finger finger = *fl;
       processFinger(finger);
     }
-
+    publishHandPose();
 }
 
 void LeapController::processFinger(const Leap::Finger& aFinger){
-  //TODO add logic code to get all the information for the finger
+  leap_controller_capstone::FingerPoseStamped finger_msg;
+  switch(aFinger.type()){
+    case Leap::Finger::TYPE_THUMB:
+      finger_msg.name = "thumb";
+    case Leap::Finger::TYPE_INDEX:
+      finger_msg.name = "index";
+    case Leap::Finger::TYPE_MIDDLE:
+      finger_msg.name = "middle";
+    case Leap::Finger::TYPE_RING:
+      finger_msg.name = "ring";
+    case Leap::Finger::TYPE_PINKY:
+      finger_msg.name = "pinky";
+  }
+
+  for (int boneEnum = 0; boneEnum < 4; ++boneEnum) {
+      Leap::Bone::Type boneType = static_cast<Leap::Bone::Type>(boneEnum);
+      Leap::Bone bone = aFinger.bone(boneType);
+      switch (bone.type()) {
+        case Leap::Bone::TYPE_DISTAL:
+          finger_msg.poseDistalPhalange.pose.position.x = (double)((bone.nextJoint().x)/1000);//Used nextJoint to get the tip
+          //TODO fill in the rest for postition and orientation
+
+        case Leap::Bone::TYPE_INTERMEDIATE:
+          finger_msg.poseIntermediatePhalange.pose.position.x = (double)((bone.center().x)/1000);
+          //TODO fill in
+
+        case Leap::Bone::TYPE_PROXIMAL:
+          finger_msg.poseProximalPhalange.pose.position.x = (double)((bone.center().x)/1000);
+          //TODO fill in
+
+        case Leap::Bone::TYPE_METACARPAL:
+          finger_msg.poseMetacarpal.pose.position.x = (double)((bone.center().x)/1000);
+          //TODO fill in
+      }
+    }//end for loop
+    sensedPoseFingers_.push_back(finger_msg);
 }
 
 void LeapController::publishHandPose(){
   leap_controller_capstone::HandPoseStamped msg;
   msg.posePalm = sensedPosePalm_;
-  msg.poseFingerTips = sensedPoseFingerTips_;
-  msg.poseMisc = sensedPoseMisc_;
+  msg.poseFingers = sensedPoseFingers_;
   hand_pose_publisher_.publish(msg);
 }
 
