@@ -35,6 +35,10 @@ private:
     std::string hand_to_sense_;
     std::vector<std::string> fingers_to_track_;
 
+    double xOffset_;
+    double yOffset_;
+    double zOffset_;
+
     geometry_msgs::PoseStamped sensedPosePalm_;//Center of the Palm Pose
     std::vector<leap_controller_capstone::FingerPoseStamped> sensedPoseFingers_;//Finger Poses
 
@@ -62,6 +66,13 @@ LeapController::LeapController(ros::NodeHandle &nh):nh_(nh){
   //TODO add param logic to get an array of bone names to track
   //for now hard code
   fingers_to_track_.push_back("index");
+
+  //TODO add param to get X,Y,Z, offset
+  //for now hard code
+  xOffset_ = 0.0;
+  yOffset_ = 0.0;
+  zOffset_ = 0.0;
+
 }
 
 void LeapController::onFrame(const Leap::Controller& controller){
@@ -114,19 +125,23 @@ void LeapController::processFinger(const Leap::Finger& aFinger){
       Leap::Bone bone = aFinger.bone(boneType);
       switch (bone.type()) {
         case Leap::Bone::TYPE_DISTAL:
-          finger_msg.poseDistalPhalange.pose.position.x = (double)((bone.nextJoint().x)/1000);//Used nextJoint to get the tip
+          finger_msg.poseDistalPhalange.pose.position.x = -(double)((bone.nextJoint().x)/1000) + xOffset_;//Used nextJoint to get the tip
+          finger_msg.poseDistalPhalange.pose.position.y = (double)((bone.nextJoint().z)/1000) + yOffset_;
+          finger_msg.poseDistalPhalange.pose.position.z = (double)((bone.nextJoint().y)/1000) + zOffset_;
           //TODO fill in the rest for postition and orientation
+          //Should it translate to ROS Space here?
+            // e.g. divide by 1000, negate the axis, add an user-set offset?
 
         case Leap::Bone::TYPE_INTERMEDIATE:
-          finger_msg.poseIntermediatePhalange.pose.position.x = (double)((bone.center().x)/1000);
+          finger_msg.poseIntermediatePhalange.pose.position.x = -(double)((bone.center().x)/1000) + xOffset_;
           //TODO fill in
 
         case Leap::Bone::TYPE_PROXIMAL:
-          finger_msg.poseProximalPhalange.pose.position.x = (double)((bone.center().x)/1000);
+          finger_msg.poseProximalPhalange.pose.position.x = -(double)((bone.center().x)/1000) + xOffset_;
           //TODO fill in
 
         case Leap::Bone::TYPE_METACARPAL:
-          finger_msg.poseMetacarpal.pose.position.x = (double)((bone.center().x)/1000);
+          finger_msg.poseMetacarpal.pose.position.x = -(double)((bone.center().x)/1000) + xOffset_;
           //TODO fill in
       }
     }//end for loop
