@@ -58,7 +58,7 @@ const std::string stateNames[] = {"STATE_INVALID", "STATE_START", "STATE_UPDATE"
 
 enum HandToSenseEnum {FIRST_HAND, LEFT_HAND, RIGHT_HAND, BOTH_HANDS};
 
-HandToSenseEnum hashToEnum(std::string const& aString){
+HandToSenseEnum convertToHandSenseEnum(std::string const& aString){
   if (aString == "first") return FIRST_HAND;
   else if (aString == "left") return LEFT_HAND;
   else if (aString == "right") return RIGHT_HAND;
@@ -92,7 +92,7 @@ void LeapController::onFrame(const Leap::Controller& controller){
 void LeapController::processFrame(){
   Leap::HandList hands = current_frame_.hands();
   if (!hands.isEmpty()){
-    switch(hashToEnum(hand_to_sense_)){
+    switch(convertToHandSenseEnum(hand_to_sense_)){
       case FIRST_HAND:
         processHand(hands[0]);
 
@@ -129,6 +129,7 @@ void LeapController::processHand(const Leap::Hand& aHand){
 
 
   //TODO add logic to select which fingers to track
+    //If finger type is in vector fingers_to_track_ ....
   const Leap::FingerList fingers = aHand.fingers();
   for (Leap::FingerList::const_iterator fl = fingers.begin(); fl != fingers.end(); ++fl) {
       const Leap::Finger finger = *fl;
