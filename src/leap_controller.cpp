@@ -96,6 +96,7 @@ void LeapController::processHand(const Leap::Hand& aHand){
   const Leap::Vector normal = aHand.palmNormal();
   const Leap::Vector direction = aHand.direction();
   //TODO add logic code to get important information on the palm here
+  //Also set HandPoseStamped.name = "left" or "right"
 
   const Leap::FingerList fingers = aHand.fingers();
   for (Leap::FingerList::const_iterator fl = fingers.begin(); fl != fingers.end(); ++fl) {
@@ -128,9 +129,9 @@ void LeapController::processFinger(const Leap::Finger& aFinger){
           finger_msg.poseDistalPhalange.pose.position.x = -(double)((bone.nextJoint().x)/1000) + xOffset_;//Used nextJoint to get the tip
           finger_msg.poseDistalPhalange.pose.position.y = (double)((bone.nextJoint().z)/1000) + yOffset_;
           finger_msg.poseDistalPhalange.pose.position.z = (double)((bone.nextJoint().y)/1000) + zOffset_;
-          //TODO fill in the rest for postition and orientation
+          //TODO fill in the rest for position and orientation
           //Should it translate to ROS Space here?
-            // e.g. divide by 1000, negate the axis, add an user-set offset?
+            // e.g. divide by 1000, negate the axis, add a user-set offset?
 
         case Leap::Bone::TYPE_INTERMEDIATE:
           finger_msg.poseIntermediatePhalange.pose.position.x = -(double)((bone.center().x)/1000) + xOffset_;
