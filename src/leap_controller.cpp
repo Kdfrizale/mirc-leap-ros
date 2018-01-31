@@ -29,11 +29,13 @@ public:
     virtual void onDeviceChange(const Leap::Controller&);
     virtual void onServiceConnect(const Leap::Controller&);
     virtual void onServiceDisconnect(const Leap::Controller&);
+
+    enum HandToSenseEnum {FIRST_HAND, LEFT_HAND, RIGHT_HAND, BOTH_HANDS};
 private:
     ros::NodeHandle nh_;
     ros::Publisher hand_pose_publisher_;
-    std::string hand_to_sense_;
-    std::vector<std::string> fingers_to_track_;
+    LeapController::HandToSenseEnum hand_to_sense_;
+    std::vector<Leap::Finger::Type> fingers_to_track_;
 
     double xOffset_;
     double yOffset_;
@@ -44,23 +46,22 @@ private:
 
     Leap::Frame current_frame_;
 
+    // const std::map<Leap::Finger::Type, std::string> finger_to_string_map_= {
+    //   {Leap::Finger::Type::TYPE_THUMB, "thumb"},
+    //   {Leap::Finger::Type::TYPE_INDEX, "index"},
+    //   {Leap::Finger::Type::TYPE_MIDDLE, "middle"},
+    //   {Leap::Finger::Type::TYPE_RING, "ring"},
+    //   {Leap::Finger::Type::TYPE_PINKY, "pinky"}
+    // };
+
     void processFrame();
     void processHand(const Leap::Hand& aHand);
     void processFinger(const Leap::Finger& aFinger);
-    void translateToRosCoordinate();
+    void resetMessageInfo();
     void publishHandPose();
-
+    LeapController::HandToSenseEnum convertToHandSenseEnum(std::string const& aString);
+    Leap::Finger::Type convertToFingerType(std::string const& aString);
 };
-
-enum HandToSenseEnum {FIRST_HAND, LEFT_HAND, RIGHT_HAND, BOTH_HANDS};
-
-HandToSenseEnum convertToHandSenseEnum(std::string const& aString){
-  if (aString == "first") return FIRST_HAND;
-  else if (aString == "left") return LEFT_HAND;
-  else if (aString == "right") return RIGHT_HAND;
-  else if (aString == "both") return BOTH_HANDS;
-  else return FIRST_HAND;
-}
 
 LeapController::LeapController(ros::NodeHandle &nh):nh_(nh){
   std::string output_pose_topic_name;
@@ -68,12 +69,42 @@ LeapController::LeapController(ros::NodeHandle &nh):nh_(nh){
   ROS_INFO("Publishing Leap Hand Poses to topic [%s]", output_pose_topic_name.c_str());
   hand_pose_publisher_ = nh_.advertise<leap_controller_capstone::HandPoseStamped>(output_pose_topic_name,10);
 
-  nh_.param<std::string>("leap_controller_node/hand_to_sense",hand_to_sense_, "first");
-  nh_.getParam("leap_controller_node/fingers_to_track_list",fingers_to_track_);
+  std::string hand_to_sense_tmp;
+  nh_.param<std::string>("leap_controller_node/hand_to_sense",hand_to_sense_tmp, "first");
+  hand_to_sense_ = convertToHandSenseEnum(hand_to_sense_tmp);
+
+  std::vector<std::string> fingers_to_track_tmp;
+  nh_.getParam("leap_controller_node/fingers_to_track_list",fingers_to_track_tmp);
+  for (std::string finger : fingers_to_track_tmp){
+    fingers_to_track_.push_back(convertToFingerType(finger));
+  }
 
   nh_.param<double>("leap_controller_node/x_offset_position",xOffset_, 0.0);
   nh_.param<double>("leap_controller_node/y_offset_position",yOffset_, 0.0);
   nh_.param<double>("leap_controller_node/z_offset_position",zOffset_, 0.0);
+}
+
+LeapController::HandToSenseEnum LeapController::convertToHandSenseEnum(std::string const& aString){
+  if (aString == "first") return FIRST_HAND;
+  else if (aString == "left") return LEFT_HAND;
+  else if (aString == "right") return RIGHT_HAND;
+  else if (aString == "both") return BOTH_HANDS;
+  else {
+    ROS_WARN("INVALID hand_to_sense value:[%s]. Possible values are [first,left,right,both]",aString.c_str());
+    ROS_INFO("Unrecognized hand_to_sense value. Defaulting to 'first'");
+    return FIRST_HAND;
+  }
+}
+
+Leap::Finger::Type LeapController::convertToFingerType(std::string const& aString){
+  if (aString == "thumb") return Leap::Finger::TYPE_THUMB;
+  else if (aString == "index") return Leap::Finger::TYPE_INDEX;
+  else if (aString == "middle") return Leap::Finger::TYPE_MIDDLE;
+  else if (aString == "ring") return Leap::Finger::TYPE_RING;
+  else if (aString == "pinky") return Leap::Finger::TYPE_PINKY;
+  else {
+    ROS_WARN("INVALID finger_to_track value:[%s]. Possible values are [thumb,index,middle,ring,pinky]",aString.c_str());
+  }
 }
 
 void LeapController::onFrame(const Leap::Controller& controller){
@@ -84,7 +115,7 @@ void LeapController::onFrame(const Leap::Controller& controller){
 void LeapController::processFrame(){
   Leap::HandList hands = current_frame_.hands();
   if (!hands.isEmpty()){
-    switch(convertToHandSenseEnum(hand_to_sense_)){
+    switch(hand_to_sense_){
       case FIRST_HAND:
         processHand(hands[0]);
 
@@ -119,13 +150,12 @@ void LeapController::processHand(const Leap::Hand& aHand){
   //TODO add logic code to get important information on the palm here
   //Also set HandPoseStamped.name = "left" or "right"
 
-
-  //TODO add logic to select which fingers to track
-    //If finger type is in vector fingers_to_track_ ....
   const Leap::FingerList fingers = aHand.fingers();
   for (Leap::FingerList::const_iterator fl = fingers.begin(); fl != fingers.end(); ++fl) {
       const Leap::Finger finger = *fl;
-      processFinger(finger);
+      if(std::find(fingers_to_track_.begin(),fingers_to_track_.end(),finger.type()) != fingers_to_track_.end()){
+        processFinger(finger);
+      }
     }
     publishHandPose();
 }
@@ -179,6 +209,12 @@ void LeapController::publishHandPose(){
   msg.posePalm = sensedPosePalm_;
   msg.poseFingers = sensedPoseFingers_;
   hand_pose_publisher_.publish(msg);
+  resetMessageInfo();
+}
+
+void LeapController::resetMessageInfo(){
+  sensedPosePalm_ = geometry_msgs::PoseStamped();
+  sensedPoseFingers_.clear();
 }
 
 void LeapController::onInit(const Leap::Controller& controller) {
