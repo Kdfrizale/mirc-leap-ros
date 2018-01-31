@@ -2,7 +2,11 @@
   <param name="leap_output_pose_topic" value="/leap_hand_pose"/>
 
   <node name="leap_controller_node" pkg="leap_controller_capstone" type="leap_controller" output="screen">
-    <param name="hand_to_sense" value="first" />
+    <param name="hand_to_sense" type="str" value="right" />
+    <rosparam param="fingers_to_track_list">["thumb","index","middle","ring","pinky"]</rosparam>
+    <param name="x_offset_position" type="double" value="0.0" />
+    <param name="y_offset_position" type="double" value="0.0" />
+    <param name="z_offset_position" type="double" value="0.0" />
   </node>
 
 

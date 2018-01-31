@@ -52,10 +52,6 @@ private:
 
 };
 
-const std::string fingerNames[] = {"Thumb", "Index", "Middle", "Ring", "Pinky"};
-const std::string boneNames[] = {"Metacarpal", "Proximal", "Middle", "Distal"};
-const std::string stateNames[] = {"STATE_INVALID", "STATE_START", "STATE_UPDATE", "STATE_END"};
-
 enum HandToSenseEnum {FIRST_HAND, LEFT_HAND, RIGHT_HAND, BOTH_HANDS};
 
 HandToSenseEnum convertToHandSenseEnum(std::string const& aString){
@@ -63,25 +59,21 @@ HandToSenseEnum convertToHandSenseEnum(std::string const& aString){
   else if (aString == "left") return LEFT_HAND;
   else if (aString == "right") return RIGHT_HAND;
   else if (aString == "both") return BOTH_HANDS;
+  else return FIRST_HAND;
 }
 
 LeapController::LeapController(ros::NodeHandle &nh):nh_(nh){
   std::string output_pose_topic_name;
-  nh_.getParam("leap_output_pose_topic",output_pose_topic_name);
+  nh_.param<std::string>("leap_output_pose_topic",output_pose_topic_name, "/leap_hand_pose");
   ROS_INFO("Publishing Leap Hand Poses to topic [%s]", output_pose_topic_name.c_str());
   hand_pose_publisher_ = nh_.advertise<leap_controller_capstone::HandPoseStamped>(output_pose_topic_name,10);
 
-  nh_.param<std::string>("hand_to_sense",hand_to_sense_, "first");
-  //TODO add param logic to get an array of bone names to track
-  //for now hard code
-  fingers_to_track_.push_back("index");
+  nh_.param<std::string>("leap_controller_node/hand_to_sense",hand_to_sense_, "first");
+  nh_.getParam("leap_controller_node/fingers_to_track_list",fingers_to_track_);
 
-  //TODO add param to get X,Y,Z, offset
-  //for now hard code
-  xOffset_ = 0.0;
-  yOffset_ = 0.0;
-  zOffset_ = 0.0;
-
+  nh_.param<double>("leap_controller_node/x_offset_position",xOffset_, 0.0);
+  nh_.param<double>("leap_controller_node/y_offset_position",yOffset_, 0.0);
+  nh_.param<double>("leap_controller_node/z_offset_position",zOffset_, 0.0);
 }
 
 void LeapController::onFrame(const Leap::Controller& controller){
@@ -105,12 +97,12 @@ void LeapController::processFrame(){
           }
 
       case RIGHT_HAND:
-      for (Leap::HandList::const_iterator hl = hands.begin(); hl != hands.end(); ++hl) {
-          const Leap::Hand hand = *hl;
-          if(hand.isRight()){
-            processHand(hand);
+        for (Leap::HandList::const_iterator hl = hands.begin(); hl != hands.end(); ++hl) {
+            const Leap::Hand hand = *hl;
+            if(hand.isRight()){
+              processHand(hand);
+            }
           }
-        }
 
       case BOTH_HANDS:
         for (Leap::HandList::const_iterator hl = hands.begin(); hl != hands.end(); ++hl) {
@@ -162,8 +154,9 @@ void LeapController::processFinger(const Leap::Finger& aFinger){
           finger_msg.poseDistalPhalange.pose.position.y = (double)((bone.nextJoint().z)/1000) + yOffset_;
           finger_msg.poseDistalPhalange.pose.position.z = (double)((bone.nextJoint().y)/1000) + zOffset_;
           //TODO fill in the rest for position and orientation
-          //Should it translate to ROS Space here?
-            // e.g. divide by 1000, negate the axis, add a user-set offset?
+          //translate to ROS Space here
+          //how to do correct orientation?
+            //look at both old arm_mimic_capstone code and old leap code
 
         case Leap::Bone::TYPE_INTERMEDIATE:
           finger_msg.poseIntermediatePhalange.pose.position.x = -(double)((bone.center().x)/1000) + xOffset_;
@@ -225,7 +218,6 @@ void LeapController::onDeviceChange(const Leap::Controller& controller) {
 
 void LeapController::onServiceConnect(const Leap::Controller& controller) {
     ROS_INFO("Leap Controller: Service Connected");
-
 }
 
 void LeapController::onServiceDisconnect(const Leap::Controller& controller) {
