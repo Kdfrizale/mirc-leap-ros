@@ -63,7 +63,8 @@ void SampleListener::onFrame(const Controller& controller) {
     //Struct of the 1 point that I need to send via ROS MSG
 //    geometry_msgs::PoseStamped sensedPoseTip1;//Center of Hand
 
-    for (HandList::const_iterator hl = hands.begin(); hl != hands.end(); ++hl) {
+       //May not be needed. further testing required
+//     for (HandList::const_iterator hl = hands.begin(); hl != hands.end(); ++hl) {
         // Get the first hand
         const Hand hand = *hl;
 
@@ -82,7 +83,7 @@ void SampleListener::onFrame(const Controller& controller) {
 //        arm_mimic_capstone::HandStampedPose thread;
 //        thread.posePalm = sensedPosePalm;
 //        publish.publish(thread);
-    }
+//     }
 }
 
 void SampleListener::onFocusGained(const Controller& controller) {
