@@ -36,6 +36,7 @@ private:
     ros::Publisher hand_pose_publisher_;
     LeapController::HandToSenseEnum hand_to_sense_;
     std::vector<Leap::Finger::Type> fingers_to_track_;
+    std::string relative_frame_;
 
     double xOffset_;
     double yOffset_;
@@ -47,8 +48,8 @@ private:
     void processFrame();
     void processHand(const Leap::Hand& aHand);
     void processFinger(const Leap::Finger& aFinger);
-    void resetMessageInfo();
     void publishHandPose();
+    void resetMessageInfo();
     LeapController::HandToSenseEnum convertToHandSenseEnum(std::string const& aString);
     Leap::Finger::Type convertToFingerType(std::string const& aString);
 };
@@ -68,6 +69,8 @@ LeapController::LeapController(ros::NodeHandle &nh):nh_(nh){
   for (std::string finger : fingers_to_track_tmp){
     fingers_to_track_.push_back(convertToFingerType(finger));
   }
+
+  nh_.param<std::string>("leap_controller_node/relative_frame",relative_frame_, "/root");
 
   nh_.param<double>("leap_controller_node/x_offset_position",xOffset_, 0.0);
   nh_.param<double>("leap_controller_node/y_offset_position",yOffset_, 0.0);
@@ -140,9 +143,16 @@ void LeapController::processFrame(){
 
 void LeapController::processHand(const Leap::Hand& aHand){
   current_hand_msg_.name = aHand.isLeft() ? "left" : "right";
-  current_hand_msg_.posePalm.pose.position.x = -(aHand.palmPosition().x/1000);
-  current_hand_msg_.posePalm.pose.position.y = (aHand.palmPosition().z/1000);
-  current_hand_msg_.posePalm.pose.position.z = (aHand.palmPosition().y/1000);
+  current_hand_msg_.header.frame_id = relative_frame_;
+  current_hand_msg_.posePalm.header.frame_id = relative_frame_;
+  current_hand_msg_.posePalm.pose.position.x = -(aHand.palmPosition().x/1000) + xOffset_;
+  current_hand_msg_.posePalm.pose.position.y = (aHand.palmPosition().z/1000) + yOffset_;
+  current_hand_msg_.posePalm.pose.position.z = (aHand.palmPosition().y/1000) + zOffset_;
+
+  current_hand_msg_.posePalm.pose.orientation.x = 0;
+  current_hand_msg_.posePalm.pose.orientation.y = 0;
+  current_hand_msg_.posePalm.pose.orientation.z = 0;
+  current_hand_msg_.posePalm.pose.orientation.w = 1;
   //TODO add logic code to get important information on the palm here
 
   if(!fingers_to_track_.empty()){
@@ -192,23 +202,24 @@ void LeapController::processFinger(const Leap::Finger& aFinger){
           break;
         case Leap::Bone::TYPE_INTERMEDIATE:
           finger_msg.poseIntermediatePhalange.pose.position.x = -(double)((bone.center().x)/1000) + xOffset_;
-          finger_msg.poseIntermediatePhalange.pose.position.y = (double)((bone.center().z)/1000) + xOffset_;
-          finger_msg.poseIntermediatePhalange.pose.position.z = (double)((bone.center().y)/1000) + xOffset_;
+          finger_msg.poseIntermediatePhalange.pose.position.y = (double)((bone.center().z)/1000) + yOffset_;
+          finger_msg.poseIntermediatePhalange.pose.position.z = (double)((bone.center().y)/1000) + zOffset_;
           //TODO fill in
           break;
         case Leap::Bone::TYPE_PROXIMAL:
           finger_msg.poseProximalPhalange.pose.position.x = -(double)((bone.center().x)/1000) + xOffset_;
-          finger_msg.poseProximalPhalange.pose.position.y = (double)((bone.center().z)/1000) + xOffset_;
-          finger_msg.poseProximalPhalange.pose.position.z = (double)((bone.center().y)/1000) + xOffset_;
+          finger_msg.poseProximalPhalange.pose.position.y = (double)((bone.center().z)/1000) + yOffset_;
+          finger_msg.poseProximalPhalange.pose.position.z = (double)((bone.center().y)/1000) + zOffset_;
           //TODO fill in
           break;
         case Leap::Bone::TYPE_METACARPAL:
           finger_msg.poseMetacarpal.pose.position.x = -(double)((bone.center().x)/1000) + xOffset_;
+          finger_msg.poseMetacarpal.pose.position.y = (double)((bone.center().z)/1000) + yOffset_;
+          finger_msg.poseMetacarpal.pose.position.z = (double)((bone.center().y)/1000) + zOffset_;
           //TODO fill in
           break;
       }
     }//end for loop
-    //sensedPoseFingers_.push_back(finger_msg);
     current_hand_msg_.poseFingers.push_back(finger_msg);
 }
 
