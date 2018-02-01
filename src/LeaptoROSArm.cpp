@@ -62,13 +62,16 @@ void SampleListener::onFrame(const Controller& controller) {
 
     //All hands recorded on the frame
     HandList hands = frame.hands();
+ 
+//All defined data points for one hand arrays
+    long handDataPoints[20];
+    long rollPitchYaw[3];
 
     //Struct of the 3 points that I need to send via ROS MSG
     geometry_msgs::PoseStamped sensedPoseTip1;//Thumb Finger tip
     geometry_msgs::PoseStamped sensedPoseTip2;//Index Finger tip
     geometry_msgs::PoseStamped sensedPosePalm;//wrist
 
-//************************************************ Trial: remove for loop and see if it still runs as normal *************************************************************************
     for (HandList::const_iterator hl = hands.begin(); hl != hands.end(); ++hl) {
         // Get the first hand
         const Hand hand = *hl;
@@ -77,7 +80,6 @@ void SampleListener::onFrame(const Controller& controller) {
         if(hand == frame.hands() [0]){
             std::string handType = hand.isLeft() ? "Left hand" : "Right hand";
             std::cout << std::string(2, ' ') << handType << ", id: " << hand.id()
-//maybe delete info below/ see the number below and maybe use this value instead of Center of Palm
             << ", palm position: " << hand.palmPosition() << std::endl;
 
             // Get the hand's normal vector and direction
@@ -88,9 +90,15 @@ void SampleListener::onFrame(const Controller& controller) {
             std::cout << std::string(2, ' ') <<  "pitch: " << direction.pitch() << " Rads, "
             << "roll: " << normal.roll() << " Rads, "
             << "yaw: " << direction.yaw() << " Rads" << std::endl;
+         
+//Adding Roll, Pitch, Yaw
+            rollPitchYaw[0] = normal.roll();
+            rollPitchYaw[1] = direction.pitch();
+            rollPitchYaw[2] = direction.yaw();
 
             // Get fingers
             const FingerList fingers = hand.fingers();
+            int DataPointsCounter = 0;
             for (FingerList::const_iterator fl = fingers.begin(); fl != fingers.end(); ++fl) {
                 const Finger finger = *fl;
 
@@ -109,6 +117,9 @@ void SampleListener::onFrame(const Controller& controller) {
                 for (int b = 0; b < 4; ++b) {
                     Bone::Type boneType = static_cast<Bone::Type>(b);
                     Bone bone = finger.bone(boneType);
+                 
+//Adding all 20 Data points for the "previous joint" of each bone.
+                    handDataPoints[DataPointCounter] = bone.prevJoint();
 
                     //Center of Palm = (Middle Metacarpal Start + End)/2 (x,y,z) (Yaw, Roll, Pitch)
                     if(fingerNames[finger.type()] == fingerNames[3] && boneNames[boneType] == boneNames[0]){
@@ -197,6 +208,7 @@ void SampleListener::onFrame(const Controller& controller) {
                             // sensedPoseTip2.pose.position.z = (double)((bone.prevJoint().y)/1000);
                     }
                 }
+             DataPointCounter++;
             }
         }
     }
