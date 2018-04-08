@@ -1,4 +1,4 @@
 Header header
 string name
-geometry_msgs/PoseStamped posePalm
-leap_controller_capstone/FingerPoseStamped[] poseFingers
+geometry_msgs/Pose posePalm
+leap_controller/FingerPose[] poseFingers
