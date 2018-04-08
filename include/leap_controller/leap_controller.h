@@ -39,6 +39,8 @@
 #include <Leap.h>
 #include "ros/ros.h"
 #include <leap_controller/HandPoseStamped.h>
+#include <tf/transform_datatypes.h>
+#include <tf/transform_broadcaster.h>
 
 class LeapController : public Leap::Listener {
 public:
@@ -60,14 +62,13 @@ private:
     ros::Publisher hand_pose_publisher_;
     LeapController::HandToSenseEnum hand_to_sense_;
     std::vector<Leap::Finger::Type> fingers_to_track_;
-    std::string relative_frame_;
+    std::string base_frame_;
+    std::string palm_frame_;
 
-    double xOffset_;
-    double yOffset_;
-    double zOffset_;
-    double rollOffset_;
-    double pitchOffset_;
-    double yawOffset_;
+    tf::Transform tfLeapInBase_;
+    boost::shared_ptr<tf::TransformBroadcaster> tf_broadcaster_;
+    tf::StampedTransform  tf_palm_;
+
 
     leap_controller::HandPoseStamped current_hand_msg_;
     Leap::Frame current_frame_;

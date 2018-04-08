@@ -50,7 +50,7 @@ generate_messages(
 ###################################
 catkin_package(
    INCLUDE_DIRS include
-   CATKIN_DEPENDS std_msgs geometry_msgs message_runtime
+   CATKIN_DEPENDS geometry_msgs message_runtime std_msgs tf
 )
 
 ###########
@@ -61,17 +61,18 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   include
+  ../../external/LeapSDK/include
   ${catkin_INCLUDE_DIRS}
 )
 
-# This system depends upon the LEAPMOTIONSDK_LIBRARY
+# This system depends upon the LeapSDK
 # We assume it is placed in an external folder parallel to the
 # workspace src/ folder.
-FIND_LIBRARY(LEAPMOTIONSDK_LIBRARY Leap ../external/LeapMotionSDK/lib/)
+FIND_LIBRARY(LEAPSDK_LIBRARY Leap ../../external/LeapSDK/lib/x64)
 
 add_executable(${PROJECT_NAME}_node src/leap_controller.cpp)
-target_link_libraries(leap_controller ${LEAPMOTIONSDK_LIBRARY})
-target_link_libraries(leap_controller ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}_node ${LEAPSDK_LIBRARY})
+target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 #############
 ## Install ##
@@ -88,8 +89,7 @@ target_link_libraries(leap_controller ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 # )
 
 ## Mark executables and/or libraries for installation
-install(TARGETS ${PROJECT_NAME}
-   ${PROJECT_NAME}_node
+install(TARGETS ${PROJECT_NAME}_node
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
