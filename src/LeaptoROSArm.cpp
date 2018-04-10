@@ -9,7 +9,7 @@
 #include <cstring>
 #include "../include/Leap.h"
 #include "ros/ros.h"
-#include <leap_controller_capstone/HandPoseStamped.h>
+#include <leap_controller/HandPoseStamped.h>
 #include <geometry_msgs/PoseStamped.h>
 #include "../include/tf/LinearMath/Matrix3x3.h"
 #include <boost/shared_ptr.hpp>
@@ -264,7 +264,7 @@ int main(int argc, char** argv) {
 
     //Heh. Funny.
     //Prevents anything from happening until the user is ready.
-    std::cout << "Touch Trump's Hair to start (Enter).."<< std::endl;
+    std::cout << "Press Enter to start ..."<< std::endl;
     std::cin.get();
 
     // Create a sample listener and controller
