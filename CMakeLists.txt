@@ -10,6 +10,7 @@ add_compile_options(-std=c++11)
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   message_generation
+  message_runtime
   roscpp
   std_msgs
   tf
@@ -32,17 +33,17 @@ find_package(catkin REQUIRED COMPONENTS
 ## package, follow these steps:
 
 ## Generate messages in the 'msg' folder
-add_message_files(
+add_message_files( DIRECTORY msg
   FILES
-  HandPoseStamped.msg
   FingerPose.msg
+  HandPoseStamped.msg
 )
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
-  std_msgs
   geometry_msgs
+  std_msgs
 )
 
 ###################################
@@ -59,20 +60,21 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
+set(LEAP_SDK ../../external/LeapSDK)
 include_directories(
   include
-  ../../external/LeapSDK/include
+  ${LEAP_SDK}/include
   ${catkin_INCLUDE_DIRS}
 )
 
 # This system depends upon the LeapSDK
 # We assume it is placed in an external folder parallel to the
 # workspace src/ folder.
-FIND_LIBRARY(LEAPSDK_LIBRARY Leap ../../external/LeapSDK/lib/x64)
+find_library(LEAPSDK_LIBRARY Leap ${LEAP_SDK}/lib/x64)
 
 add_executable(${PROJECT_NAME}_node src/leap_controller.cpp)
-target_link_libraries(${PROJECT_NAME}_node ${LEAPSDK_LIBRARY})
-target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+add_dependencies(${PROJECT_NAME}_node ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES} ${LEAPSDK_LIBRARY} ${Boost_LIBRARIES})
 
 #############
 ## Install ##
@@ -92,7 +94,9 @@ target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES} ${Boost_LIBRARIES
 install(TARGETS ${PROJECT_NAME}_node
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
-
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)
 #############
 ## Testing ##
 #############

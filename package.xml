@@ -3,7 +3,7 @@
   <name>leap_controller</name>
   <version>0.0.1</version>
   <description>
-    The leap_controller package provides a ROS-based interface to the LeapMotion system.
+    A ROS-based interface to the LeapMotion system.
   </description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
