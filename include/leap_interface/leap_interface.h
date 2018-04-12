@@ -38,7 +38,7 @@
  *********************************************************************/
 #include <Leap.h>
 #include "ros/ros.h"
-#include <leap_controller/HandPoseStamped.h>
+#include <leap_interface/HandPoseStamped.h>
 #include <tf/transform_datatypes.h>
 #include <tf/transform_broadcaster.h>
 
@@ -60,6 +60,8 @@ public:
 private:
     ros::NodeHandle nh_;
     ros::Publisher hand_pose_publisher_;
+    ros::Publisher pose_stamped_publisher_;
+
     LeapController::HandToSenseEnum hand_to_sense_;
     std::vector<Leap::Finger::Type> fingers_to_track_;
     std::string base_frame_;
@@ -70,7 +72,8 @@ private:
     tf::StampedTransform  tf_palm_;
 
 
-    leap_controller::HandPoseStamped current_hand_msg_;
+    geometry_msgs::PoseStamped current_pose_stamped_msg_;
+    leap_interface::HandPoseStamped current_hand_msg_;
     Leap::Frame current_frame_;
 
     void processFrame();

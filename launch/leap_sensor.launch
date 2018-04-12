@@ -1,13 +1,15 @@
 <launch>
   <param name="leap_output_pose_topic" value="/leap_hand_pose"/>
 
-  <node name="leap_controller_node" pkg="leap_controller" type="leap_controller_node" output="screen">
+  <node name="leap_interface_node" pkg="leap_interface" type="leap_interface_node" output="screen">
     <!-- <rosparam param="hand_to_sense">["first","left","right","both"]</rosparam> -->
-    <param name="hand_to_sense" type="str" value="left" />
+    <param name="hand_to_sense" type="str" value="both" />
     <!-- <rosparam param="fingers_to_track_list">["thumb","index","middle","ring","pinky"]</rosparam> -->
     <rosparam param="fingers_to_track_list">["index", "thumb", "index"]</rosparam>
     <param name="base_frame" type="str" value="/base"/>
     <param name="palm_frame" type="str" value="/palm"/>
+    <param name="hand_pose_topic" type="str" value="/leap_hand_pose"/>
+    <param name="pose_stamped_topic" type="str" value="/leap_pose"/>
 
     <!-- transform from the Leap frame to base frame (Leap frame in base frame) -->
     <param name="x_offset_position" type="double" value="0.0" />
@@ -15,7 +17,7 @@
     <param name="z_offset_position" type="double" value="0.0" />
     <param name="roll_offset_orientation"  type="double" value="1.57079632679" /> <!-- ROS roll about x-axis-->
     <param name="pitch_offset_orientation" type="double" value="0.0" />
-    <param name="yaw_offset_orientation"   type="double" value="0.0" />
+    <param name="yaw_offset_orientation"   type="double" value="-1.57079632679" />
   </node>
 
 

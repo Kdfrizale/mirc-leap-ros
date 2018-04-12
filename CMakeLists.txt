@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(leap_controller)
+project(leap_interface)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
@@ -72,7 +72,7 @@ include_directories(
 # workspace src/ folder.
 find_library(LEAPSDK_LIBRARY Leap ${LEAP_SDK}/lib/x64)
 
-add_executable(${PROJECT_NAME}_node src/leap_controller.cpp)
+add_executable(${PROJECT_NAME}_node src/leap_interface.cpp)
 add_dependencies(${PROJECT_NAME}_node ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES} ${LEAPSDK_LIBRARY} ${Boost_LIBRARIES})
 
@@ -102,7 +102,7 @@ install(DIRECTORY include/${PROJECT_NAME}/
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_leap_controller_capstone.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_leap_interface.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

@@ -1,7 +1,7 @@
-# Leap Controller
+# Leap Interface
 ===================
 
-The leap_controller provides a ROS interface to the LeapMotion system.
+The leap_interface provides a ROS interface to the LeapMotion system.
 
 
 Usage
@@ -10,7 +10,7 @@ Usage
 Clone this repo into your ROS workspace and build.
 
 <pre>
-roslaunch leap_controller leap_sensor.launch
+roslaunch leap_interface leap_sensor.launch
 </pre>
 
 

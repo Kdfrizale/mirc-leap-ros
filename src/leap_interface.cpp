@@ -42,7 +42,7 @@
 #include <iostream>
 #include <cstring>
 
-#include <leap_controller/leap_controller.h>
+#include <leap_interface/leap_interface.h>
 #include <geometry_msgs/PoseStamped.h>
 #include "tf/LinearMath/Matrix3x3.h"
 #include "tf/transform_datatypes.h"
@@ -61,9 +61,14 @@ std::ostream& operator<<(std::ostream& os, const tf::Vector3 &vec)
 
 LeapController::LeapController(ros::NodeHandle &nh):nh_(nh){
   std::string output_pose_topic_name;
-  nh_.param<std::string>("leap_output_pose_topic",output_pose_topic_name, "/leap_hand_pose");
+  nh_.param<std::string>("hand_pose_topic",output_pose_topic_name, "/leap_hand_pose");
   ROS_INFO("Publishing Leap Hand Poses to topic [%s]", output_pose_topic_name.c_str());
-  hand_pose_publisher_ = nh_.advertise<leap_controller::HandPoseStamped>(output_pose_topic_name,10);
+  hand_pose_publisher_ = nh_.advertise<leap_interface::HandPoseStamped>(output_pose_topic_name,10);
+
+  nh_.param<std::string>("pose_stamped_topic",output_pose_topic_name, "/leap_pose");
+  ROS_INFO("Publishing simple pose stamped to topic [%s]", output_pose_topic_name.c_str());
+  pose_stamped_publisher_ = nh_.advertise<geometry_msgs::PoseStamped>(output_pose_topic_name,10);
+
 
   std::string hand_to_sense_tmp;
   nh_.param<std::string>("hand_to_sense",hand_to_sense_tmp, "first");
@@ -90,7 +95,6 @@ LeapController::LeapController(ros::NodeHandle &nh):nh_(nh){
 
   // Pose in Leap frame
   tfLeapInBase_ = tf::Transform(tfQuat, tf::Vector3(xOffset, yOffset, zOffset));
-  std::cout << "   RPY = " << rollOffset << std::endl;
   std::cout << " tfLeapInBase_ = " << tfLeapInBase_.getRotation() << "  " << tfLeapInBase_.getOrigin() << std::endl;
 
   bool broadcast_tf = true;
@@ -180,7 +184,7 @@ void LeapController::processHand(const Leap::Hand& aHand){
   float pitch = aHand.direction().pitch(); // angle about x-axis ( "roll" in ZYX form)
   float yaw   = aHand.direction().yaw();   // angle around the y-axis ( "pitch" in ZYX form)
   float roll  = aHand.palmNormal().roll(); // angle aroud the z-axis ( "yaw" in ZYX form)
-  tf::Quaternion tfQuat  = tf::createQuaternionFromRPY(pitch, yaw, roll); // using Leap names in ROS ZYX order
+  tf::Quaternion tfQuat  = tf::createQuaternionFromRPY(roll,pitch, yaw);//pitch, yaw, roll); // using Leap names in ROS ZYX order
   tfQuat.normalize();
 
   // Pose in Leap frame
@@ -216,12 +220,11 @@ void LeapController::processHand(const Leap::Hand& aHand){
     tf_palm_.stamp_ = ros::Time::now();
     tf_palm_.setData(tfPalmInBase);
     tf_broadcaster_->sendTransform(tf_palm_);
-    ROS_INFO(" Sent tf data ....");
   }
 }
 
 void LeapController::processFinger(const Leap::Finger& aFinger){
-  leap_controller::FingerPose finger_msg;
+  leap_interface::FingerPose finger_msg;
   switch(aFinger.type()){
     case Leap::Finger::TYPE_THUMB:
       finger_msg.name = "thumb";
@@ -245,30 +248,30 @@ void LeapController::processFinger(const Leap::Finger& aFinger){
       Leap::Bone bone = aFinger.bone(boneType);
       switch (bone.type()) {
         case Leap::Bone::TYPE_DISTAL:
-          finger_msg.poseDistalPhalange.position.x = -(double)((bone.nextJoint().x)/1000);// + xOffset_;//Used nextJoint to get the tip
-          finger_msg.poseDistalPhalange.position.y =  (double)((bone.nextJoint().z)/1000);// + yOffset_;
-          finger_msg.poseDistalPhalange.position.z =  (double)((bone.nextJoint().y)/1000) ;//+ zOffset_;
+          finger_msg.poseDistalPhalange.position.x =  (double)((bone.nextJoint().x)/1000);//Used nextJoint to get the tip
+          finger_msg.poseDistalPhalange.position.y =  (double)((bone.nextJoint().z)/1000);
+          finger_msg.poseDistalPhalange.position.z =  (double)((bone.nextJoint().y)/1000);
           //TODO fill in the rest for position and orientation
           //translate to ROS Space here
           //how to do correct orientation?
             //look at both old arm_mimic code and old leap code
           break;
         case Leap::Bone::TYPE_INTERMEDIATE:
-          finger_msg.poseIntermediatePhalange.position.x = -(double)((bone.center().x)/1000);// + xOffset_;
-          finger_msg.poseIntermediatePhalange.position.y =  (double)((bone.center().z)/1000);// + yOffset_;
-          finger_msg.poseIntermediatePhalange.position.z =  (double)((bone.center().y)/1000) ;//+ zOffset_;
+          finger_msg.poseIntermediatePhalange.position.x =  (double)((bone.center().x)/1000);
+          finger_msg.poseIntermediatePhalange.position.y =  (double)((bone.center().z)/1000);
+          finger_msg.poseIntermediatePhalange.position.z =  (double)((bone.center().y)/1000);
           //TODO fill in
           break;
         case Leap::Bone::TYPE_PROXIMAL:
-          finger_msg.poseProximalPhalange.position.x = -(double)((bone.center().x)/1000);// + xOffset_;
-          finger_msg.poseProximalPhalange.position.y =  (double)((bone.center().z)/1000);// + yOffset_;
-          finger_msg.poseProximalPhalange.position.z =  (double)((bone.center().y)/1000);// + zOffset_;
+          finger_msg.poseProximalPhalange.position.x =  (double)((bone.center().x)/1000);
+          finger_msg.poseProximalPhalange.position.y =  (double)((bone.center().z)/1000);
+          finger_msg.poseProximalPhalange.position.z =  (double)((bone.center().y)/1000);
           //TODO fill in
           break;
         case Leap::Bone::TYPE_METACARPAL:
-          finger_msg.poseMetacarpal.position.x = -(double)((bone.center().x)/1000);// + xOffset_;
-          finger_msg.poseMetacarpal.position.y =  (double)((bone.center().z)/1000);// + yOffset_;
-          finger_msg.poseMetacarpal.position.z =  (double)((bone.center().y)/1000);// + zOffset_;
+          finger_msg.poseMetacarpal.position.x =  (double)((bone.center().x)/1000);
+          finger_msg.poseMetacarpal.position.y =  (double)((bone.center().z)/1000);
+          finger_msg.poseMetacarpal.position.z =  (double)((bone.center().y)/1000);
           //TODO fill in
           break;
       }
@@ -277,12 +280,16 @@ void LeapController::processFinger(const Leap::Finger& aFinger){
 }
 
 void LeapController::publishHandPose(){
+  current_pose_stamped_msg_.header = current_hand_msg_.header;
+  current_pose_stamped_msg_.pose   = current_hand_msg_.posePalm;
+
   hand_pose_publisher_.publish(current_hand_msg_);
+  pose_stamped_publisher_.publish(current_pose_stamped_msg_);
   resetMessageInfo();
 }
 
 void LeapController::resetMessageInfo(){
-  current_hand_msg_ = leap_controller::HandPoseStamped();
+  current_hand_msg_ = leap_interface::HandPoseStamped();
 }
 
 void LeapController::onInit(const Leap::Controller& controller) {
@@ -329,7 +336,7 @@ void LeapController::onServiceDisconnect(const Leap::Controller& controller) {
 }
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "leap_controller_node");
+    ros::init(argc, argv, "leap_interface_node");
     ros::NodeHandle node_handle("~");
 
     // Create the LeapController instance
