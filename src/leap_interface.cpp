@@ -66,8 +66,10 @@ LeapController::LeapController(ros::NodeHandle &nh):nh_(nh){
   hand_pose_publisher_ = nh_.advertise<leap_interface::HandPoseStamped>(output_pose_topic_name,10);
 
   nh_.param<std::string>("pose_stamped_topic",output_pose_topic_name, "/leap_pose");
-  ROS_INFO("Publishing simple pose stamped to topic [%s]", output_pose_topic_name.c_str());
-  pose_stamped_publisher_ = nh_.advertise<geometry_msgs::PoseStamped>(output_pose_topic_name,10);
+  if (output_pose_topic_name.length() > 0) {
+    ROS_INFO("Publishing simple pose stamped to topic [%s]", output_pose_topic_name.c_str());
+    pose_stamped_publisher_ = nh_.advertise<geometry_msgs::PoseStamped>(output_pose_topic_name,10);
+  }
 
 
   std::string hand_to_sense_tmp;
@@ -82,7 +84,11 @@ LeapController::LeapController(ros::NodeHandle &nh):nh_(nh){
 
   nh_.param<std::string>("base_frame",base_frame_, "/root");
   nh_.param<std::string>("palm_frame",palm_frame_, "/palm");
-
+  nh_.param<bool>("use_stabilized_position",use_stabilized_position_,false);
+  if (use_stabilized_position_)
+  {
+    ROS_INFO("Using stabilized palm position from Leap");
+  }
   double xOffset, yOffset, zOffset, rollOffset, pitchOffset, yawOffset;
   nh_.param<double>("x_offset_position",xOffset, 0.0);
   nh_.param<double>("y_offset_position",yOffset, 0.0);
@@ -181,14 +187,20 @@ void LeapController::processHand(const Leap::Hand& aHand){
   //current_hand_msg_.posePalm.header.frame_id = base_frame_;
 
   // Get hand orientation in Leap frame
-  float pitch = aHand.direction().pitch(); // angle about x-axis ( "roll" in ZYX form)
-  float yaw   = aHand.direction().yaw();   // angle around the y-axis ( "pitch" in ZYX form)
-  float roll  = aHand.palmNormal().roll(); // angle aroud the z-axis ( "yaw" in ZYX form)
-  tf::Quaternion tfQuat  = tf::createQuaternionFromRPY(roll,pitch, yaw);//pitch, yaw, roll); // using Leap names in ROS ZYX order
-  tfQuat.normalize();
+  //float pitch = aHand.direction().pitch(); // angle about x-axis ( "roll" in ZYX form)
+  //float yaw   = aHand.direction().yaw();   // angle around the y-axis ( "pitch" in ZYX form)
+  //float roll  = aHand.palmNormal().roll(); // angle aroud the z-axis ( "yaw" in ZYX form)
+  //tf::Quaternion tfQuat  = tf::createQuaternionFromRPY(roll,pitch, yaw);//pitch, yaw, roll); // using Leap names in ROS ZYX order
+  //tfQuat.normalize();
+  tf::Quaternion tfQuat;
+  convertLeapBasisToQuat(tfQuat, aHand.basis(), aHand.isLeft());
 
   // Pose in Leap frame
-  tf::Transform tfPalmInLeap(tfQuat, tf::Vector3(aHand.palmPosition().x/1000., aHand.palmPosition().y/1000., aHand.palmPosition().z/1000));
+  tf::Vector3 palmPosition(aHand.palmPosition().x/1000., aHand.palmPosition().y/1000., aHand.palmPosition().z/1000);
+  if (use_stabilized_position_){
+    palmPosition = tf::Vector3(aHand.stabilizedPalmPosition().x/1000., aHand.stabilizedPalmPosition().y/1000., aHand.stabilizedPalmPosition().z/1000);
+  }
+  tf::Transform tfPalmInLeap(tfQuat,palmPosition);
 
   // Pose in base frame
   tf::Transform tfPalmInBase = tfLeapInBase_*tfPalmInLeap;
@@ -210,7 +222,7 @@ void LeapController::processHand(const Leap::Hand& aHand){
     for (Leap::FingerList::const_iterator fl = fingers.begin(); fl != fingers.end(); ++fl) {
         const Leap::Finger finger = *fl;
         if(std::find(fingers_to_track_.begin(),fingers_to_track_.end(),finger.type()) != fingers_to_track_.end()){
-          processFinger(finger);
+          processFinger(finger,aHand.isLeft());
         }
       }
   }
@@ -223,7 +235,81 @@ void LeapController::processHand(const Leap::Hand& aHand){
   }
 }
 
-void LeapController::processFinger(const Leap::Finger& aFinger){
+void LeapController::convertLeapBasisToQuat(tf::Quaternion& tfQuat, const Leap::Matrix basis, const bool isLeftHand)
+{
+
+  /**
+   * The orientation of the hand as a basis matrix.
+   *
+   * The basis is defined as follows:
+   * **xAxis** Positive in the direction of the pinky
+   * **yAxis** Positive above the hand
+   * **zAxis** Positive in the direction of the wrist
+   *
+   * Note: Since the left hand is a mirror of the right hand, the
+   * basis matrix will be left-handed for left hands.
+   */
+
+ /**
+  * The orientation of a finger as a basis
+  * **xBasis** Perpendicular to the longitudinal axis of the
+  *   bone; exits the sides of the finger.
+  *
+  * **yBasis or up vector** Perpendicular to the longitudinal
+  *   axis of the bone; exits the top and bottom of the finger. More positive
+  *   in the upward direction.
+  *
+  * **zBasis** Aligned with the longitudinal axis of the bone.
+  *   More positive toward the base of the finger.
+  *
+  * The bases provided for the right hand use the right-hand rule; those for
+  * the left hand use the left-hand rule. Thus, the positive direction of the
+  * x-basis is to the right for the right hand and to the left for the left
+  * hand. You can change from right-hand to left-hand rule by multiplying the
+  * z basis vector by -1. ??? why not x-basis ???
+  */
+  Leap::Vector xBasis = basis.xBasis;
+  if (isLeftHand)
+  {
+    xBasis *= -1.0;
+  }
+
+  // This works for Leap frame with z-axis from palm to wrist and y-axis out the top of palm
+  tf::Matrix3x3 rotation(xBasis.x, basis.yBasis.x, basis.zBasis.x,
+                         xBasis.y, basis.yBasis.y, basis.zBasis.y,
+                         xBasis.z, basis.yBasis.z, basis.zBasis.z);
+
+  // Re-define with x-axis to fingers, and z-axis positive out the back of palm
+  //    Commented code didn't work; the Frame looked OK at first, but rotations are off
+  //tf::Matrix3x3 rotation(-basis.zBasis.x, -xBasis.x, basis.yBasis.x,
+  //                       -basis.zBasis.y, -xBasis.y, basis.yBasis.y,
+  //                       -basis.zBasis.z, -xBasis.z, basis.yBasis.z  );
+  rotation.getRotation(tfQuat);
+}
+
+void LeapController::transformLeapFingerPose(geometry_msgs::Pose& fingerPose, const Leap::Vector position, const Leap::Matrix basis, const bool isLeftHand) {
+
+
+  // Pose in Leap frame
+  tf::Quaternion tfQuat;
+  convertLeapBasisToQuat(tfQuat, basis, isLeftHand);
+  tf::Vector3   fingerPosition(position.x/1000., position.y/1000., position.z/1000);
+  tf::Transform tfFingerInLeap(tfQuat,fingerPosition);
+
+  // Pose in base frame
+  tf::Transform tfFingerInBase = tfLeapInBase_*tfFingerInLeap;
+  tfQuat = tfFingerInBase.getRotation();
+  tf::Vector3 tfOrigin = tfFingerInBase.getOrigin();
+  fingerPose.position.x    = tfOrigin.x();
+  fingerPose.position.y    = tfOrigin.y();
+  fingerPose.position.z    = tfOrigin.z();
+  fingerPose.orientation.x = tfQuat.x();
+  fingerPose.orientation.y = tfQuat.y();
+  fingerPose.orientation.z = tfQuat.z();
+  fingerPose.orientation.w = tfQuat.w();
+}
+
+void LeapController::processFinger(const Leap::Finger& aFinger, bool isLeftHand){
   leap_interface::FingerPose finger_msg;
   switch(aFinger.type()){
     case Leap::Finger::TYPE_THUMB:
@@ -248,31 +334,16 @@ void LeapController::processFinger(const Leap::Finger& aFinger){
       Leap::Bone bone = aFinger.bone(boneType);
       switch (bone.type()) {
         case Leap::Bone::TYPE_DISTAL:
-          finger_msg.poseDistalPhalange.position.x =  (double)((bone.nextJoint().x)/1000);//Used nextJoint to get the tip
-          finger_msg.poseDistalPhalange.position.y =  (double)((bone.nextJoint().z)/1000);
-          finger_msg.poseDistalPhalange.position.z =  (double)((bone.nextJoint().y)/1000);
-          //TODO fill in the rest for position and orientation
-          //translate to ROS Space here
-          //how to do correct orientation?
-            //look at both old arm_mimic code and old leap code
+          transformLeapFingerPose(finger_msg.poseDistalPhalange,       bone.nextJoint(), bone.basis(), isLeftHand);//Used nextJoint to get the tip
           break;
         case Leap::Bone::TYPE_INTERMEDIATE:
-          finger_msg.poseIntermediatePhalange.position.x =  (double)((bone.center().x)/1000);
-          finger_msg.poseIntermediatePhalange.position.y =  (double)((bone.center().z)/1000);
-          finger_msg.poseIntermediatePhalange.position.z =  (double)((bone.center().y)/1000);
-          //TODO fill in
+          transformLeapFingerPose(finger_msg.poseIntermediatePhalange, bone.center(), bone.basis(), isLeftHand);
           break;
         case Leap::Bone::TYPE_PROXIMAL:
-          finger_msg.poseProximalPhalange.position.x =  (double)((bone.center().x)/1000);
-          finger_msg.poseProximalPhalange.position.y =  (double)((bone.center().z)/1000);
-          finger_msg.poseProximalPhalange.position.z =  (double)((bone.center().y)/1000);
-          //TODO fill in
+          transformLeapFingerPose(finger_msg.poseProximalPhalange,     bone.center(), bone.basis(), isLeftHand);
           break;
         case Leap::Bone::TYPE_METACARPAL:
-          finger_msg.poseMetacarpal.position.x =  (double)((bone.center().x)/1000);
-          finger_msg.poseMetacarpal.position.y =  (double)((bone.center().z)/1000);
-          finger_msg.poseMetacarpal.position.z =  (double)((bone.center().y)/1000);
-          //TODO fill in
+          transformLeapFingerPose(finger_msg.poseMetacarpal,           bone.center(), bone.basis(), isLeftHand);
           break;
       }
     }//end for loop
@@ -284,7 +355,9 @@ void LeapController::publishHandPose(){
   current_pose_stamped_msg_.pose   = current_hand_msg_.posePalm;
 
   hand_pose_publisher_.publish(current_hand_msg_);
-  pose_stamped_publisher_.publish(current_pose_stamped_msg_);
+  if (pose_stamped_publisher_) {
+    pose_stamped_publisher_.publish(current_pose_stamped_msg_);
+  }
   resetMessageInfo();
 }
 

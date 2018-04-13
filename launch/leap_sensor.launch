@@ -11,6 +11,9 @@
     <param name="hand_pose_topic" type="str" value="/leap_hand_pose"/>
     <param name="pose_stamped_topic" type="str" value="/leap_pose"/>
 
+    <!-- provide option to use stabilized pose, but likely very laggy -->
+    <param name="use_stabilized_position" type="bool" value="false" />
+
     <!-- transform from the Leap frame to base frame (Leap frame in base frame) -->
     <param name="x_offset_position" type="double" value="0.0" />
     <param name="y_offset_position" type="double" value="0.0" />

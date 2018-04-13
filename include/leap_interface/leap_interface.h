@@ -66,6 +66,7 @@ private:
     std::vector<Leap::Finger::Type> fingers_to_track_;
     std::string base_frame_;
     std::string palm_frame_;
+    bool use_stabilized_position_;
 
     tf::Transform tfLeapInBase_;
     boost::shared_ptr<tf::TransformBroadcaster> tf_broadcaster_;
@@ -78,9 +79,12 @@ private:
 
     void processFrame();
     void processHand(const Leap::Hand& aHand);
-    void processFinger(const Leap::Finger& aFinger);
+    void processFinger(const Leap::Finger& aFinger, const bool isLeftHand);
     void publishHandPose();
     void resetMessageInfo();
     LeapController::HandToSenseEnum convertToHandSenseEnum(std::string const& aString);
     Leap::Finger::Type convertToFingerType(std::string const& aString);
+    void transformLeapFingerPose(geometry_msgs::Pose& fingerPose, const Leap::Vector position, const Leap::Matrix basis, const bool isLeftHand);
+    void convertLeapBasisToQuat(tf::Quaternion& quat, const Leap::Matrix basis, const bool isLeftHand);
+
 };
