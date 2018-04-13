@@ -71,7 +71,8 @@ private:
     tf::Transform tfLeapInBase_;
     boost::shared_ptr<tf::TransformBroadcaster> tf_broadcaster_;
     tf::StampedTransform  tf_palm_;
-
+    std::vector<tf::StampedTransform> tf_transforms_;
+    bool broadcast_fingers_tf_;
 
     geometry_msgs::PoseStamped current_pose_stamped_msg_;
     leap_interface::HandPoseStamped current_hand_msg_;
@@ -84,7 +85,7 @@ private:
     void resetMessageInfo();
     LeapController::HandToSenseEnum convertToHandSenseEnum(std::string const& aString);
     Leap::Finger::Type convertToFingerType(std::string const& aString);
-    void transformLeapFingerPose(geometry_msgs::Pose& fingerPose, const Leap::Vector position, const Leap::Matrix basis, const bool isLeftHand);
+    void transformLeapFingerPose(geometry_msgs::Pose& fingerPose, const Leap::Vector position, const Leap::Matrix basis, const bool isLeftHand, const std::string& name);
     void convertLeapBasisToQuat(tf::Quaternion& quat, const Leap::Matrix basis, const bool isLeftHand);
 
 };

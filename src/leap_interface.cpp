@@ -111,6 +111,12 @@ LeapController::LeapController(ros::NodeHandle &nh):nh_(nh){
     tf_palm_.stamp_ = ros::Time::now();
     tf_palm_.frame_id_       = base_frame_;
     tf_palm_.child_frame_id_ = palm_frame_;
+
+    // Can only broadcast fingers if also doing palm
+    nh_.param<bool>("broadcast_fingers_tf",  broadcast_fingers_tf_, false);
+  }
+  else {
+    broadcast_fingers_tf_ = false;
   }
 }
 
@@ -217,6 +223,16 @@ void LeapController::processHand(const Leap::Hand& aHand){
   current_hand_msg_.posePalm.orientation.z = tfQuat.z();
   current_hand_msg_.posePalm.orientation.w = tfQuat.w();
 
+  if (tf_broadcaster_){
+    tf_palm_.stamp_ = ros::Time::now();
+    tf_palm_.setData(tfPalmInBase);
+    tf_transforms_.clear();
+    if (broadcast_fingers_tf_)
+      tf_transforms_.reserve(1 + 4*fingers_to_track_.size());
+
+    tf_transforms_.push_back(tf_palm_);
+  }
+
   if(!fingers_to_track_.empty()){
     const Leap::FingerList fingers = aHand.fingers();
     for (Leap::FingerList::const_iterator fl = fingers.begin(); fl != fingers.end(); ++fl) {
@@ -229,9 +245,7 @@ void LeapController::processHand(const Leap::Hand& aHand){
   publishHandPose();
 
   if (tf_broadcaster_){
-    tf_palm_.stamp_ = ros::Time::now();
-    tf_palm_.setData(tfPalmInBase);
-    tf_broadcaster_->sendTransform(tf_palm_);
+    tf_broadcaster_->sendTransform(tf_transforms_);
   }
 }
 
@@ -287,7 +301,8 @@ void LeapController::convertLeapBasisToQuat(tf::Quaternion& tfQuat, const Leap::
   rotation.getRotation(tfQuat);
 }
 
-void LeapController::transformLeapFingerPose(geometry_msgs::Pose& fingerPose, const Leap::Vector position, const Leap::Matrix basis, const bool isLeftHand) {
+void LeapController::transformLeapFingerPose(geometry_msgs::Pose& fingerPose, const Leap::Vector position, const Leap::Matrix basis,
+                                            const bool isLeftHand, const std::string& name) {
 
 
   // Pose in Leap frame
@@ -307,6 +322,10 @@ void LeapController::transformLeapFingerPose(geometry_msgs::Pose& fingerPose, co
   fingerPose.orientation.y = tfQuat.y();
   fingerPose.orientation.z = tfQuat.z();
   fingerPose.orientation.w = tfQuat.w();
+
+  if (broadcast_fingers_tf_){
+    tf_transforms_.push_back(tf::StampedTransform(tfFingerInBase, tf_palm_.stamp_, tf_palm_.frame_id_, name));
+  }
 }
 
 void LeapController::processFinger(const Leap::Finger& aFinger, bool isLeftHand){
@@ -327,27 +346,34 @@ void LeapController::processFinger(const Leap::Finger& aFinger, bool isLeftHand)
     case Leap::Finger::TYPE_PINKY:
       finger_msg.name = "pinky";
       break;
+    default:
+      ROS_WARN(" Unknown finger type %d",aFinger.type());
+      finger_msg.name = "unknown";
   }
 
   for (int boneEnum = 0; boneEnum < 4; ++boneEnum) {
       Leap::Bone::Type boneType = static_cast<Leap::Bone::Type>(boneEnum);
       Leap::Bone bone = aFinger.bone(boneType);
+      std::string bone_name = isLeftHand ? "l":"r";
+      bone_name  += finger_msg.name.at(0);
       switch (bone.type()) {
         case Leap::Bone::TYPE_DISTAL:
-          transformLeapFingerPose(finger_msg.poseDistalPhalange,       bone.nextJoint(), bone.basis(), isLeftHand);//Used nextJoint to get the tip
+          transformLeapFingerPose(finger_msg.poseDistalPhalange,       bone.nextJoint(), bone.basis(), isLeftHand, bone_name+"_tip");//Used nextJoint to get the tip
           break;
         case Leap::Bone::TYPE_INTERMEDIATE:
-          transformLeapFingerPose(finger_msg.poseIntermediatePhalange, bone.center(), bone.basis(), isLeftHand);
+          transformLeapFingerPose(finger_msg.poseIntermediatePhalange, bone.center(), bone.basis(), isLeftHand, bone_name+"_inter");
           break;
         case Leap::Bone::TYPE_PROXIMAL:
-          transformLeapFingerPose(finger_msg.poseProximalPhalange,     bone.center(), bone.basis(), isLeftHand);
+          transformLeapFingerPose(finger_msg.poseProximalPhalange,     bone.center(), bone.basis(), isLeftHand, bone_name+"_proxi");
           break;
         case Leap::Bone::TYPE_METACARPAL:
-          transformLeapFingerPose(finger_msg.poseMetacarpal,           bone.center(), bone.basis(), isLeftHand);
+          transformLeapFingerPose(finger_msg.poseMetacarpal,           bone.center(), bone.basis(), isLeftHand, bone_name+"_meta");
           break;
       }
     }//end for loop
     current_hand_msg_.poseFingers.push_back(finger_msg);
+
+
 }
 
 void LeapController::publishHandPose(){
