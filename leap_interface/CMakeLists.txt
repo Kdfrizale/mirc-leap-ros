@@ -60,7 +60,7 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-set(LEAP_SDK ../../external/LeapSDK)
+set(LEAP_SDK ../../../external/LeapSDK)
 include_directories(
   include
   ${LEAP_SDK}/include
