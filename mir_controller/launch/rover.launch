@@ -7,8 +7,9 @@
     <param name="rotation_vel_scaling" value="4.5"/>
 
     <!-- For a limited zone around origin, set the output to zero within deadband
-         between deadband and transition use f= 1/2 * ((x-deadband)/(transition-deadband))^2
-         beyond transition use f = 1/2 + x - transition -->
+         between deadband and transition use
+         f= 1/2 * (transition-deadband)((x-deadband)/(transition-deadband))^2
+         beyond transition use f = 1/2(transition-deadband) + x - transition -->
     <param name="vel_deadband"    value="0.01"/>
     <param name="vel_transition"  value="0.03"/>
     <param name="rot_deadband"    value="0.01"/>
@@ -17,6 +18,7 @@
     <!-- 0.0 use latest raw, 0.9999 use mostly prior -->
     <param name="vel_smoothing" value="0.6"/>
     <param name="rot_smoothing" value="0.6"/>
+    <param name="max_tracking_height" value="0.25"/>
 
   </node>
 

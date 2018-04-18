@@ -64,19 +64,21 @@ private:
   double vel_smoothing_;
   double rot_smoothing_;
 
+  double max_tracking_height_;
+
   inline double command_calculation(const double& x, const double& deadband, const double& transition,
                                     const double& scaling, const double& prior, const double& smoothing)
   {
     if (fabs(x) <= deadband) return 0.0;
     double val;
+    double dx = (transition-deadband);
     if (fabs(x) < transition)
     {
       double tmp = fabs(x) - deadband;
-      double tmp2 = tmp/(transition-deadband);
-      val = 0.5*tmp2*tmp2;
+      val = 0.5*tmp*tmp/dx; // = 1/2(tmp/dx)^2 * dx to end at 1/2 dx
     } else {
-      // transition zone ends with a slope of 1. and value of 1/2
-      val = 0.5 + fabs(x) - transition;
+      // transition zone ends with a slope of 1. and value of 1/2 transition zone
+      val = 0.5*dx + fabs(x) - transition;
     }
 
     // Apply the scaling factor

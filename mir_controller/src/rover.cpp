@@ -54,6 +54,7 @@ Rover::Rover(ros::NodeHandle &nh):ControlledRobot(nh){
   nh_.param<double>("vel_transition",  vel_transition_, 0.03);
   nh_.param<double>("rot_deadband",    rot_deadband_,   0.01);
   nh_.param<double>("rot_transition_", rot_transition_, 0.03);
+  nh_.param<double>("max_tracking_height", max_tracking_height_, 0.25);
 
   nh_.param<double>("vel_smoothing",   vel_smoothing_,  0.0);
   nh_.param<double>("rot_smoothing",   rot_smoothing_,  0.0);
@@ -73,9 +74,20 @@ Rover::~Rover(){
 
 //Calculate require TwistStamped Message
 bool Rover::calculateMove(){
+  twist_.header.stamp = handPoseStamped_->header.stamp;
+  if (handPoseStamped_->posePalm.position.z > max_tracking_height_)
+  {
+    ROS_INFO_THROTTLE(1.0, "Hand is too high -tracking is not allowed!");
+    twist_.twist.linear.x = 0;
+    twist_.twist.linear.y = 0;
+    twist_.twist.linear.z = 0;
+    twist_.twist.angular.x = 0;
+    twist_.twist.angular.y = 0;
+    twist_.twist.angular.z = 0;
+    return true;
+  }
   //Multiply the speed and turning rate by a scaling coefficient based on size of rover
   // This calculation provides a deadband around origin where the output is zero, and a transition zone
-  twist_.header.stamp = handPoseStamped_->header.stamp;
   if (handPoseStamped_->posePalm.position.x >= 0.0) {
     // Separate forward and reverse velocity scaling
     twist_.twist.linear.x  = command_calculation(handPoseStamped_->posePalm.position.x, vel_deadband_, vel_transition_,
