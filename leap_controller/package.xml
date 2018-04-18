@@ -1,0 +1,25 @@
+<package format="2">
+  <name>leap_controller</name>
+  <version>0.0.1</version>
+  <description>
+    The leap_controller is a meta-package containing a ROS-based interface to the Leap Motion sensor
+    and two controller nodes that convert the leap messages into robot commands.
+
+  </description>
+	<maintainer email="robotics@cnu.edu">CNURobotics</maintainer>
+	<license>BSD</license>
+  <url type="website">https://github.com/CNURobotics/leap_controller</url>
+  <url type="repository">https://github.com/CNURobotics/leap_controller</url>
+  <url type="bugtracker">https://github.com/CNURobotics/leap_controller/issues</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <exec_depend>leap_interface</exec_depend>
+  <exec_depend>mir_controller</exec_depend>
+  <!-- We do not require the arm controller to be built due to MoveIt! dependencies -->
+  <!-- depend>mir_controller_arm</depend -->
+
+  <export>
+    <metapackage/>
+  </export>
+</package>
