@@ -1,32 +1,35 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>mir_controller</name>
+  <name>mir_controller_arm</name>
   <version>0.0.1</version>
   <description>
-    The mir_controller package provides an interface library and uses
-    leap_interface to send TwistStamped commands to a 2D rover
+    The mir_controller_arm package uses leap_interface to send commands to
+    robot arm via MoveIt!
   </description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
-  <!-- Example:  -->
-  <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
   <maintainer email="robotics@cnu.edu">CNURobotics</maintainer>
-
 
   <!-- One license tag required, multiple allowed, one license per tag -->
   <!-- Commonly used license strings: -->
   <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
   <license>BSD</license>
 
+
+  <!-- Url tags are optional, but multiple are allowed, one per tag -->
+  <url type="website">https://github.com/CNURobotics/leap_controller</url>
+
+
   <buildtool_depend>catkin</buildtool_depend>
-  <depend>roscpp</depend>
-  <depend>std_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>leap_interface</depend>
+  <depend>mir_controller</depend>
+  <depend>moveit_core</depend>
+  <depend>moveit_ros_planning_interface</depend>
+  <depend>roscpp</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->
   </export>
-
 </package>

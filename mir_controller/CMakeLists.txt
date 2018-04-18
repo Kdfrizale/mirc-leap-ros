@@ -24,7 +24,7 @@ catkin_package(
     include
   LIBRARIES
     ${PROJECT_NAME}
-    
+
 )
 
 ###########
@@ -32,9 +32,8 @@ catkin_package(
 ###########
 
 include_directories(include ${catkin_INCLUDE_DIRS})
-link_directories(${catkin_LIBRARY_DIRS})
 
-add_library(${PROJECT_NAME} src/utilities.cpp src/controlled_robot.cpp)
+add_library(${PROJECT_NAME} src/controlled_robot.cpp src/utilities.cpp)
 
 add_executable(${PROJECT_NAME}_rover_node src/rover.cpp )
 target_link_libraries(${PROJECT_NAME}_rover_node ${catkin_LIBRARIES} ${PROJECT_NAME})
