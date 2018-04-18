@@ -1,0 +1,5 @@
+string name
+geometry_msgs/Pose poseDistalPhalange
+geometry_msgs/Pose poseIntermediatePhalange
+geometry_msgs/Pose poseProximalPhalange
+geometry_msgs/Pose poseMetacarpal

@@ -1,0 +1,26 @@
+<launch>
+  <node name="rover" pkg="mir_controller" type="mir_controller_rover_node" output="screen">
+    <param name="leap_output_pose_topic" value="/leap_hand_pose"/>
+    <param name="output_publish_topic" value="/turtlebot/stamped_cmd_vel_mux/input/navi"/>
+    <param name="fwd_vel_scaling"      value="3.0"/>
+    <param name="rev_vel_scaling"      value="1.5"/>
+    <param name="rotation_vel_scaling" value="4.5"/>
+
+    <!-- For a limited zone around origin, set the output to zero within deadband
+         between deadband and transition use
+         f= 1/2 * (transition-deadband)((x-deadband)/(transition-deadband))^2
+         beyond transition use f = 1/2(transition-deadband) + x - transition -->
+    <param name="vel_deadband"    value="0.01"/>
+    <param name="vel_transition"  value="0.03"/>
+    <param name="rot_deadband"    value="0.01"/>
+    <param name="rot_transition_" value="0.03"/>
+
+    <!-- 0.0 use latest raw, 0.9999 use mostly prior -->
+    <param name="vel_smoothing" value="0.6"/>
+    <param name="rot_smoothing" value="0.6"/>
+    <param name="max_tracking_height" value="0.25"/>
+
+  </node>
+
+
+</launch>
