@@ -20,6 +20,11 @@ catkin_package(
     leap_interface
     roscpp
     std_msgs
+  INCLUDE_DIRS
+    include
+  LIBRARIES
+    ${PROJECT_NAME}
+    
 )
 
 ###########
@@ -32,7 +37,7 @@ link_directories(${catkin_LIBRARY_DIRS})
 add_library(${PROJECT_NAME} src/utilities.cpp src/controlled_robot.cpp)
 
 add_executable(${PROJECT_NAME}_rover_node src/rover.cpp )
-target_link_libraries(${PROJECT_NAME}_rover_node ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${PROJECT_NAME})
+target_link_libraries(${PROJECT_NAME}_rover_node ${catkin_LIBRARIES} ${PROJECT_NAME})
 
 # ----------------- Install -----------------
 install(TARGETS ${PROJECT_NAME}_rover_node

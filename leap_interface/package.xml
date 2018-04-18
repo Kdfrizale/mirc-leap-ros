@@ -10,6 +10,7 @@
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
   <maintainer email="robotics@cnu.edu">CNURobotics</maintainer>
+  <url type="website">https://github.com/CNURobotics/leap_controller</url>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
