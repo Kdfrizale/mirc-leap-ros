@@ -1,6 +1,0 @@
-<launch>
-
-  <include file="$(find mir_controllers)/launch/robotic_arm_simulation.launch" />
-  <include file="$(find leap_interface)/launch/leap_sensor.launch" />
-
-</launch>

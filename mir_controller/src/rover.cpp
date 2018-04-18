@@ -35,13 +35,37 @@
  *********************************************************************/
 
 /* Authors: Ricardo Flores, Kyle Frizzell, and David Conner */
-#include <rover.h>
+#include <mir_controller/rover.h>
 
 Rover::Rover(ros::NodeHandle &nh):ControlledRobot(nh){
   std::string output_topic_name;
   nh_.getParam("output_publish_topic",output_topic_name);
   move_publisher_ = nh_.advertise<geometry_msgs::TwistStamped>(output_topic_name,10);
   ROS_INFO("Publishing TwistStamped move to topic [%s]", output_topic_name.c_str());
+
+  nh_.param<double>("fwd_vel_scaling",     fwd_vel_scaling_,  3.0);
+  nh_.param<double>("rev_vel_scaling",     rev_vel_scaling_,  1.5);
+  nh_.param<double>("rotation_vel_scaling",rotation_scaling_, 4.5);
+
+  // For a limited zone around origin, set the output to zero within deadband
+  // between deadband and transition use f= 1/2 * ((x-deadband)/(transition-deadband))^2
+  // beyond transition use f = 1/2 + x - transition
+  nh_.param<double>("vel_deadband",    vel_deadband_,   0.01);
+  nh_.param<double>("vel_transition",  vel_transition_, 0.03);
+  nh_.param<double>("rot_deadband",    rot_deadband_,   0.01);
+  nh_.param<double>("rot_transition_", rot_transition_, 0.03);
+
+  nh_.param<double>("vel_smoothing",   vel_smoothing_,  0.0);
+  nh_.param<double>("rot_smoothing",   rot_smoothing_,  0.0);
+
+  if (vel_smoothing_ > 0.9999){
+    ROS_ERROR("Invalid vel_smoothing constant %f for [%s]", vel_smoothing_, output_topic_name.c_str());
+    exit(-1);
+  }
+  if (rot_smoothing_ > 0.9999){
+    ROS_ERROR("Invalid rot_smoothing constant %f for [%s]", rot_smoothing_, output_topic_name.c_str());
+    exit(-1);
+  }
 }
 
 Rover::~Rover(){
@@ -49,30 +73,42 @@ Rover::~Rover(){
 
 //Calculate require TwistStamped Message
 bool Rover::calculateMove(){
-  //Multiply the speed and turning rate by a scale coefficient based on size of rover
-  goal_.twist.linear.x  = sensedPosePalm_.position.x * 3;
-  goal_.twist.angular.z = sensedPosePalm_.position.y * 4.5;
+  //Multiply the speed and turning rate by a scaling coefficient based on size of rover
+  // This calculation provides a deadband around origin where the output is zero, and a transition zone
+  twist_.header.stamp = handPoseStamped_->header.stamp;
+  if (handPoseStamped_->posePalm.position.x >= 0.0) {
+    // Separate forward and reverse velocity scaling
+    twist_.twist.linear.x  = command_calculation(handPoseStamped_->posePalm.position.x, vel_deadband_, vel_transition_,
+                               fwd_vel_scaling_, twist_.twist.linear.x, vel_smoothing_);
+  } else {
+    twist_.twist.linear.x  = command_calculation(handPoseStamped_->posePalm.position.x, vel_deadband_, vel_transition_,
+                              rev_vel_scaling_, twist_.twist.linear.x, vel_smoothing_);
+  }
+
+  twist_.twist.angular.z = command_calculation(handPoseStamped_->posePalm.position.y, rot_deadband_, rot_transition_,
+                             rotation_scaling_, twist_.twist.angular.z, rot_smoothing_);
   return true;
 }
 
 void Rover::setDefaultMove(){
-  goal_.twist.linear.x = 0;
-  goal_.twist.linear.y = 0;
-  goal_.twist.linear.z = 0;
-  goal_.twist.angular.x = 0;
-  goal_.twist.angular.y = 0;
-  goal_.twist.angular.z = 0;
+  twist_.header.stamp = ros::Time::now();
+  twist_.twist.linear.x = 0;
+  twist_.twist.linear.y = 0;
+  twist_.twist.linear.z = 0;
+  twist_.twist.angular.x = 0;
+  twist_.twist.angular.y = 0;
+  twist_.twist.angular.z = 0;
 }
 
 bool Rover::executeMove(){
-  move_publisher_.publish(goal_);
+  move_publisher_.publish(twist_);
   return true;
 }
 
 //Begin executing callback functions for subscriptions
 void Rover::beginListening(){
   while (ros::ok()){
-    ROS_INFO_THROTTLE(1,"Waiting for input...");
+    //ROS_DEBUG_THROTTLE(1,"Waiting for input...");
     ros::spinOnce();
     if(receivedNewPose_){
       receivedNewPose_ = false;
@@ -96,7 +132,6 @@ int main(int argc, char** argv){
 
   Rover myRover = Rover(node);
   myRover.beginListening();
-
   ros::spin();
   return 0;
 }

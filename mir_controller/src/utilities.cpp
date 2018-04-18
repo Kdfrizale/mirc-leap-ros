@@ -35,7 +35,7 @@
  *********************************************************************/
 
 /* Authors: Ricardo Flores, Kyle Frizzell, and David Conner */
-#include <utilities.h>
+#include <mir_controller/utilities.h>
 
 //Calculate the distance between two 3D points in space
 double calculateDistanceBetweenPoints(geometry_msgs::Pose pose1, geometry_msgs::Pose pose2){

@@ -35,7 +35,7 @@
  *********************************************************************/
 
 /* Authors: Ricardo Flores, Kyle Frizzell, and David Conner */
-#include <controlled_robot.h>
+#include <mir_controller/controlled_robot.h>
 
 ControlledRobot::ControlledRobot(ros::NodeHandle &nh):nh_(nh){
   std::string input_pose_topic_name;
@@ -57,16 +57,16 @@ bool ControlledRobot::executeMove(){
 
 //Sets the desired poseTargets to the received input poses
 void ControlledRobot::updatePoseValues(const leap_interface::HandPoseStamped::ConstPtr& msg){
-  ROS_INFO_THROTTLE(1,"Received Input. Now processing...");
+  //ROS_DEBUG_THROTTLE(1,"Received Input. Now processing...");
   //Record poses received from the ROS Topic
-  sensedPosePalm_ = msg->posePalm;
+  handPoseStamped_ = msg;
   receivedNewPose_ = true;
 }
 
 //Begin executing callback functions for subscriptions
 void ControlledRobot::beginListening(){
   while (ros::ok()){
-    ROS_INFO_THROTTLE(1,"Waiting for input...");
+    ROS_DEBUG_THROTTLE(1,"Waiting for input...");
     ros::spinOnce();
     if(receivedNewPose_){
       receivedNewPose_ = false;
