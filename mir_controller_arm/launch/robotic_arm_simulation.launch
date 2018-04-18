@@ -40,7 +40,7 @@
     <arg name="config" value="true"/>
   </include>
 
-  <node name="robotic_arm" pkg="mir_controllers" type="robotic_arm" respawn="false" launch-prefix="$(arg launch_prefix)" output="screen">
+  <node name="robotic_arm" pkg="mir_controller_arm" type="mir_controller_arm_node" respawn="false" launch-prefix="$(arg launch_prefix)" output="screen">
     <param name="leap_output_pose_topic" value="/leap_hand_pose"/>
     <param name="moveit_planning_group_arm_name" value="arm"/>
     <param name="moveit_planning_group_gripper_name" value="gripper"/>
